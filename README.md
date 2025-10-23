@@ -12,7 +12,6 @@
 - Real-time BLE notifications to connected central device
 - Auto-detection of input devices
 - Connection lifecycle logging and monitoring (RSSI, MTU, pairing)
-- Modular design with separate handlers for keyboard, mouse, and HID setup
 
 ---
 
