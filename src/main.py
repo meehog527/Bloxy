@@ -15,7 +15,7 @@ from bluezero import peripheral, adapter, device, tools
 # Otherwise, the script will auto-detect typical keyboard/mouse devices.
 KEYBOARD_EVENT: Optional[str] = None  # e.g., "/dev/input/event0"
 MOUSE_EVENT: Optional[str] = None     # e.g., "/dev/input/event1"
-LOCAL_NAME = "Pi HID Proxy"
+LOCAL_NAME = "Bloxy"
 
 # -------------------------
 # Logging setup
@@ -424,3 +424,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
