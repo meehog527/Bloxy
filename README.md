@@ -1,4 +1,4 @@
-# Bloxy
+# Blhixy (Bluetooth HID Proxy)
 
 **Bloxy** is a Bluetooth HID proxy that turns a Raspberry Pi into a wireless keyboard and mouse bridge. It listens to input events from USB-connected devices (keyboard and mouse), then translates and forwards those events over Bluetooth to a paired central device (e.g., laptop, tablet, or phone).
 
