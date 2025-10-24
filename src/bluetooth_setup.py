@@ -163,22 +163,20 @@ def on_disconnect(device):
     except AttributeError:
         logger.warning(f"Central device disconnected: {device}")
 
-from bluezero import device
-from bluezero.device import list_devices
+from bluezero.device import Device
 
 def monitor_devices():
-    for dev_addr in list_devices():
-        dev = device.Device(dev_addr)
+    for dev in Device.available():
         try:
-            logger.info(f"Monitoring device: {dev.Address}")
+            logger.info(f"Monitoring device: {dev.address}")
             logger.info(f"  Connected={dev.Connected}, Paired={dev.Paired}, ServicesResolved={dev.ServicesResolved}")
             logger.info(f"  RSSI={getattr(dev, 'RSSI', 'n/a')}, MTU={getattr(dev, 'MTU', 'n/a')}")
         except Exception as e:
-            logger.warning(f"Failed to read device state for {dev_addr}: {e}")
+            logger.warning(f"Failed to read device state for {dev.address}: {e}")
 
-        def prop_changed(iface, changed, invalidated, path=dev.path):
+        def prop_changed(iface, changed, invalidated, path=dev.remote_device_path):
             for key, value in changed.items():
-                logger.info(f"{dev.Address} {key} changed to {value}")
+                logger.info(f"{dev.address} {key} changed to {value}")
 
         dev.on_properties_changed = prop_changed
 
