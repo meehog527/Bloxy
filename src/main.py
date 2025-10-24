@@ -66,7 +66,8 @@ def shutdown():
 
 def start_ble():
     global ble
-
+    global keyboard_input_char
+    
     unblock_bluetooth()
     power_on_bluetooth()
     enable_pairing_and_discovery()
