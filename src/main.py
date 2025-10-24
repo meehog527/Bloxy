@@ -10,7 +10,8 @@ from bluetooth_setup import (
     power_on_bluetooth,
     unblock_bluetooth,
     enable_pairing_and_discovery,
-    monitor_devices
+    monitor_devices,
+    wait_for_ble_advertising
 )
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
@@ -21,32 +22,7 @@ logger = logging.getLogger("hid-proxy")
 # Global BLE object
 ble = None
 
-async def wait_for_ble_advertising():
-    """Wait until bluetoothctl reports that BLE advertising is active."""
-    while True:
-        try:
-            result = subprocess.run(
-                ["bluetoothctl", "show"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            output = result.stdout
-            for line in output.splitlines():
-                if "ActiveInstances:" in line:
-                    value = line.strip().split(":")[1].strip().split(" ")[0]
-                    if value != "0x00":
-                        logger.info("✅ BLE advertising is active.")
-                        return
-                    else:
-                        logger.debug("Waiting for BLE advertising to become active...")
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"Error checking BLE advertising status: {e}")
-        await asyncio.sleep(1)
-
 async def main_async():
-    global ble
-
     keyboard_event, mouse_event = autodetect_inputs()
     if not keyboard_event or not mouse_event:
         logger.error("Keyboard/mouse not detected.")

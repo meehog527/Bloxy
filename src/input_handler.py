@@ -79,6 +79,7 @@ async def keyboard_loop(path, ble):
 
                 report = make_keyboard_report()
                 logger.debug(f"Keyboard event: code={keycode}, value={value}, report={report}")
+                print(dir(ble))
                 ble.update_characteristic_value(1, 5, report)
                 ble.notify(1, 5)
     except Exception as e:
