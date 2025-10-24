@@ -153,37 +153,31 @@ def create_peripheral():
 
 def on_connect(device):
     try:
-        logger.debug(f"Device attributes: {dir(device)}")
-        logger.info(f"Central device connected: {device}")
-        
-        # Get the D-Bus path for the connected device
-        device_path = device.path  # This should be the full D-Bus object path
+        logger.info(f"🔗 Central device connected: {device.address}")
 
-        # Connect to system bus
-        bus = SystemBus()
-
-        # Get the BlueZ device interface
-        bluez_device = bus.get("org.bluez", device_path)
-
-        # Trust the device
-        try:
-            bluez_device.Trust()
-            logger.info(f"Trusted device: {device.path}")
-        except Exception as e:
-            logger.warning(f"Failed to trust device: {e}")
-
-        # Pair the device (if not already paired)
-        if not bluez_device.Paired:
+        # Trust the device if not already trusted
+        if not device.trusted:
             try:
-                bluez_device.Pair()
-                logger.info(f"Paired device: {device.path}")
+                device.trust()
+                logger.info(f"✅ Trusted device: {device.address}")
             except Exception as e:
-                logger.warning(f"Failed to pair device: {e}")
+                logger.warning(f"⚠️ Failed to trust device: {e}")
+        else:
+            logger.info(f"✅ Device already trusted: {device.address}")
 
-    except AttributeError as e:
-        logger.warning(f"🔗 Failed to access Address attribute: {type(e).__name__}: {e}")
-        logger.debug(f"Device object type: {type(device)}")
-        logger.debug(f"Device object repr: {repr(device)}")
+        # Pair the device if not already paired
+        if not device.paired:
+            try:
+                device.pair()
+                logger.info(f"✅ Paired device: {device.address}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to pair device: {e}")
+        else:
+            logger.info(f"✅ Device already paired: {device.address}")
+
+    except Exception as e:
+        logger.warning(f"🔗 Unhandled exception: {e}")
+
 
 
 
