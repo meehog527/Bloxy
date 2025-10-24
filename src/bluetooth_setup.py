@@ -2,6 +2,7 @@ from bluezero import peripheral, adapter
 from config import *
 from report_map import REPORT_MAP
 from logger import get_logger
+import subprocess
 
 LOCAL_NAME = "Bloxy"
 
@@ -22,3 +23,7 @@ def create_peripheral():
     ble.add_characteristic(1, 5, UUID_REPORT, bytes([0x01] + [0x00]*8), ['read', 'notify'])
     ble.add_characteristic(1, 6, UUID_REPORT, bytes([0x02, 0x00, 0x00, 0x00]), ['read', 'notify'])
     return ble
+
+def power_on_bluetooth():
+    logger.debug("Ensuring Bluetooth is powered on...")
+    subprocess.run(["bluetoothctl", "power", "on"], check=True)
