@@ -55,12 +55,12 @@ def enable_pairing_and_discovery():
     logger.debug("Enabling Bluetooth discoverable and pairable mode...")
     try:
         cmd = """
-        bluetoothctl << EOF
-        discoverable on
-        pairable on
-        agent NoInputNoOutput
-        default-agent
-        EOF
+bluetoothctl <<EOF
+discoverable on
+pairable on
+agent NoInputNoOutput
+default-agent
+EOF
         """
         subprocess.run(cmd, shell=True, check=True, executable="/bin/bash")
         logger.debug("Bluetooth is now discoverable and pairable.")

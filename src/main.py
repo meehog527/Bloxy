@@ -54,6 +54,9 @@ async def main_async():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main_async())
+       asyncio.run(main_async())
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received. Exiting...")
+        # Optional: cancel all tasks
+        for task in asyncio.all_tasks():
+            task.cancel()
