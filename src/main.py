@@ -84,4 +84,5 @@ if __name__ == "__main__":
         asyncio.run(main_async())
     except asyncio.CancelledError:
         print("KeyboardInterrupt received. Exiting cleanly.")
+        sys.exit(0)
 
