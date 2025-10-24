@@ -16,7 +16,6 @@ from input_devices import autodetect_inputs
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("hid-proxy")
 
-
 # Global BLE object
 ble = None
 
@@ -26,18 +25,8 @@ async def main_async():
     keyboard_event, mouse_event = autodetect_inputs()
     if not keyboard_event or not mouse_event:
         logger.error("Keyboard/mouse not detected.")
-        sys.exit(1)
-
-    # Setup Bluetooth
-    unblock_bluetooth()
-    power_on_bluetooth()
-    enable_pairing_and_discovery()
+        sys.exit(1) 
     
-    # Start BLE in a background thread
-    ble = create_peripheral()
-    await asyncio.to_thread(ble.publish)
-    logger.debug("BLE published")
-
     monitor_devices()
 
     loop = asyncio.get_running_loop()
@@ -62,15 +51,24 @@ async def main_async():
             logger.warning(f"Failed to stop BLE advertising: {e}")
         sys.exit(0)
 
-
 def shutdown():
     print("Received shutdown signal. Cancelling tasks...")
     for task in asyncio.all_tasks():
         task.cancel()
 
-
+def start_ble():
+    unblock_bluetooth()
+    power_on_bluetooth()
+    enable_pairing_and_discovery()
+    ble = create_peripheral()
+    ble.publish()
+    
 if __name__ == "__main__":
     try:
+        ble_thread = threading.Thread(target=start_ble, daemon=True)
+        ble_thread.start()
+        logger.debug("BLE Advertisment Loop Started")
+
         # Register signal handler for graceful shutdown
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
