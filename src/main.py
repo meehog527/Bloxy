@@ -20,10 +20,6 @@ logger = logging.getLogger("hid-proxy")
 # Global BLE object
 ble = None
 
-def start_ble():
-    ble = create_peripheral()
-    ble.publish()
-
 async def main_async():
     global ble
 
@@ -38,7 +34,8 @@ async def main_async():
     enable_pairing_and_discovery()
     
     # Start BLE in a background thread
-    await asyncio.to_thread(ble.publish())
+    ble = create_peripheral()
+    await asyncio.to_thread(ble.publish)
     logger.debug("BLE published")
 
     monitor_devices()
