@@ -1,3 +1,5 @@
+#report_map.py
+
 REPORT_MAP = bytes([
     # Keyboard
     0x05, 0x01,       # Usage Page (Generic Desktop)

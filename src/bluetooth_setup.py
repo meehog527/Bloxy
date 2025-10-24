@@ -1,3 +1,5 @@
+#bluetooth_setup.py
+
 from bluezero import peripheral, adapter
 from bluezero.device import Device
 from config import (

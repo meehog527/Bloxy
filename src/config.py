@@ -1,3 +1,5 @@
+#config.py
+
 LOCAL_NAME = "Bloxy"
 
 #HID Service
