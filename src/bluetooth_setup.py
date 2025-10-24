@@ -158,7 +158,7 @@ def on_connect(device):
         # Trust the device if not already trusted
         if not device.trusted:
             try:
-                device.trust()
+                device.trusted = True
                 logger.info(f"✅ Trusted device: {device.address}")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to trust device: {e}")
