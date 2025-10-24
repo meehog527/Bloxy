@@ -5,7 +5,7 @@ from report_map import REPORT_MAP
 LOCAL_NAME = "Bloxy"
 
 def create_peripheral():
-    ble = peripheral.Peripheral(adapter_addr=None, local_name=LOCAL_NAME, appearance=961)
+    ble = peripheral.Peripheral(adapter_address=None, local_name=LOCAL_NAME, appearance=961)
     ble.add_service(1, UUID_HID_SERVICE, primary=True)
     ble.add_characteristic(1, 1, UUID_HID_INFORMATION, bytes([0x11, 0x01, 0x00, 0x02]), ['read'])
     ble.add_characteristic(1, 2, UUID_HID_REPORT_MAP, REPORT_MAP, ['read'])
