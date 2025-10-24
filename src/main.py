@@ -1,12 +1,12 @@
 import asyncio
 import logging
+import signal
 import sys
 from bluetooth_setup import (
     create_peripheral,
     power_on_bluetooth,
     unblock_bluetooth,
-    enable_pairing_and_discovery,
-    auto_trust_on_connect
+    enable_pairing_and_discovery
 )
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
@@ -34,7 +34,17 @@ async def main_async():
         logger.debug("BLE published")
 
     loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, publish_ble)
+    
+    # Run BLE publishing in a background thread
+    ble_task = loop.run_in_executor(None, publish_ble)
+
+    try:
+        await ble_task
+    except asyncio.CancelledError:
+        print("BLE task was cancelled.")
+    finally:
+        print("Cleaning up BLE resources...")
+
 
     # Start input loops
     asyncio.create_task(keyboard_loop(keyboard_event, ble))
@@ -55,11 +65,20 @@ async def main_async():
         except AttributeError:
             logger.warning("BLE object has no stop() method")
 
+def shutdown():
+    print("Received shutdown signal. Cancelling tasks...")
+    for task in asyncio.all_tasks():
+        task.cancel()
+
+
 if __name__ == "__main__":
     try:
-       asyncio.run(main_async())
+        # Register signal handler for graceful shutdown
+        loop = asyncio.get_event_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, shutdown)
+
+        asyncio.run(main_async())
     except KeyboardInterrupt:
-        logger.info("Keyboard interrupt received. Exiting...")
-        # Optional: cancel all tasks
-        for task in asyncio.all_tasks():
-            task.cancel()
+        print("KeyboardInterrupt received. Exiting cleanly.")
+
