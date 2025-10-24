@@ -59,7 +59,7 @@ def make_mouse_report():
     cdy = max(-127, min(127, dy))
     dx, dy = 0, 0
     padding = 0x00
-    return struct.pack("bbbbb", 0x02, mouse_buttons, padding, cdx & 0xFF, cdy & 0xFF)
+    return struct.pack("bbbbb", 0x02, mouse_buttons, cdx & 0xFF, cdy & 0xFF)
 
 def get_keyboard_characteristic(ble):
     for char in ble.characteristics:
