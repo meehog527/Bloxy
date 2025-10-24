@@ -236,9 +236,10 @@ def enable_pairing_and_discovery():
         subprocess.run(
             ['bluetoothctl'],
             input='\n'.join([
-                'discoverable on',
-                'pairable on',
-                'agent DisplayYesNo'
+                'agent on'
+                'default-agent',
+                'discoverable on'
+                'pairable on'
             ]),
             text=True,
             check=True
