@@ -269,22 +269,5 @@ def trust_connected_devices():
                 except Exception as e:
                     logger.warning(f"Failed to trust {mac}: {e}")
 
-async def wait_for_ble_advertising():
-    """Wait until bluetoothctl reports that BLE advertising is active."""
-    while True:
-        try:
-            result = subprocess.run(
-                ["bluetoothctl", "show"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            if "AdvertisingFlags" in result.stdout:
-                logger.info("✅ BLE advertising is active.")
-                return
-            else:
-                logger.debug("Waiting for BLE advertising to become active...")
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"Error checking BLE advertising status: {e}")
-        await asyncio.sleep(1000)
+
 
