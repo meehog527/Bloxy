@@ -1,5 +1,22 @@
 from bluezero import peripheral, adapter
-from config import *
+from config import (
+    UUID_HID_SERVICE,
+    UUID_HID_INFORMATION,
+    UUID_HID_REPORT_MAP,
+    UUID_HID_PROTOCOL_MODE,
+    UUID_HID_CONTROL_POINT,
+    UUID_REPORT,
+    UUID_BATTERY_SERVICE,
+    UUID_BATTERY_LEVEL,
+    UUID_DEVICE_INFORMATION_SERVICE,
+    UUID_MANUFACTURER_NAME,
+    UUID_PNP_ID,
+    UUID_SYSTEM_ID,
+    UUID_SERIAL_NUMBER,
+    UUID_FIRMWARE_REV,
+    UUID_HARDWARE_REV,
+    UUID_SOFTWARE_REV
+)
 from report_map import REPORT_MAP
 from logger import get_logger
 from pydbus import SystemBus
@@ -114,7 +131,7 @@ def create_peripheral():
     # -------------------------
     ble.add_service(3, UUID_DEVICE_INFORMATION_SERVICE, primary=True)
     ble.add_characteristic(3, 1, UUID_MANUFACTURER_NAME,
-                           b'Pi HID Proxy', False, ['read'])
+                           b'Bloxy', False, ['read'])
     ble.add_characteristic(3, 2, UUID_PNP_ID,
                            bytes([0x01, 0x5D, 0x00, 0x12, 0x34, 0x00, 0x01]),
                            False, ['read'])
