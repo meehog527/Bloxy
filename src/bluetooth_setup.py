@@ -214,8 +214,7 @@ def enable_pairing_and_discovery():
             input='\n'.join([
                 'discoverable on',
                 'pairable on',
-                'agent NoInputNoOutput',
-                'default-agent'
+                'agent DisplayYesNo'
             ]),
             text=True,
             check=True
