@@ -154,7 +154,7 @@ def create_peripheral():
 
     return ble
 
-connected = False
+global connected
 
 def on_connect(device):
     global connected
