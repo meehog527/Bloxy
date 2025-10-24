@@ -15,7 +15,13 @@ from input_devices import autodetect_inputs
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("hid-proxy")
 
+
+# Global BLE object
+ble = None
+
 async def main_async():
+    global ble
+
     keyboard_event, mouse_event = autodetect_inputs()
     if not keyboard_event or not mouse_event:
         logger.error("Keyboard/mouse not detected.")
@@ -27,27 +33,13 @@ async def main_async():
     enable_pairing_and_discovery()
     ble = create_peripheral()
     monitor_devices()
-    #auto_trust_on_connect()
-
-
-    # Run BLE publish inside the event loop
-    def publish_ble():
-        ble.publish()
-        logger.debug("BLE published")
 
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGINT, shutdown)
     
-    # Run BLE publishing in a background thread
-    ble_task = loop.run_in_executor(None, publish_ble)
-
-    try:
-        await ble_task
-    except asyncio.CancelledError:
-        print("BLE task was cancelled.")
-    finally:
-        print("Cleaning up BLE resources...")
-
+    # Start BLE advertising
+    ble.publish()
+    logger.debug("BLE published")
 
     # Start input loops
     asyncio.create_task(keyboard_loop(keyboard_event, ble))
@@ -57,16 +49,17 @@ async def main_async():
 
     # Keep the loop alive
     try:
-        while True:
-            await asyncio.sleep(1)
+        await asyncio.Event().wait()  # Wait forever until cancelled
     except asyncio.CancelledError:
-        logger.info("Shutting down...")
-        # If your BLE object has a stop or cleanup method, call it here
+        logger.info("Shutdown requested.")
+    finally:
         try:
-            ble.stop()
+            ble.unpublish()
             logger.info("Stopped advertising")
-        except AttributeError:
-            logger.warning("BLE object has no stop() method")
+        except Exception as e:
+            logger.warning(f"Failed to stop BLE advertising: {e}")
+        sys.exit(0)
+
 
 def shutdown():
     print("Received shutdown signal. Cancelling tasks...")
