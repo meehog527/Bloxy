@@ -1,4 +1,5 @@
 from bluezero import peripheral, adapter
+from bluezero.device import Device
 from config import (
     UUID_HID_SERVICE,
     UUID_HID_INFORMATION,
@@ -24,6 +25,7 @@ from gi.repository import GLib
 import subprocess
 import time
 import threading
+import asyncio
 
 LOCAL_NAME = "Bloxy"
 
@@ -269,28 +271,22 @@ def trust_connected_devices():
                 except Exception as e:
                     logger.warning(f"Failed to trust {mac}: {e}")
 
-def auto_trust_on_connect():
-    bus = SystemBus()
+async def wait_for_ble_advertising():
+    """Wait until bluetoothctl reports that BLE advertising is active."""
+    while True:
+        try:
+            result = subprocess.run(
+                ["bluetoothctl", "show"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            if "AdvertisingFlags" in result.stdout:
+                logger.info("✅ BLE advertising is active.")
+                return
+            else:
+                logger.debug("Waiting for BLE advertising to become active...")
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Error checking BLE advertising status: {e}")
+        await asyncio.sleep(1000)
 
-    def on_interface_added(sender, object_path, iface, signal, params):
-        if len(params) == 2:
-            path, interfaces = params
-            if 'org.bluez.Device1' in interfaces:
-                def trust_later():
-                    time.sleep(2)  # Let connection stabilize
-                    try:
-                        device = bus.get('org.bluez', path)
-                        if device.Connected and not device.Trusted:
-                            device.Trusted = True
-                            logger.info(f"Auto-trusted device: {device.Address}")
-                    except Exception as e:
-                        logger.warning(f"Failed to auto-trust device at {path}: {e}")
-                threading.Thread(target=trust_later, daemon=True).start()
-
-    bus.subscribe(
-        iface='org.freedesktop.DBus.ObjectManager',
-        signal='InterfacesAdded',
-        signal_fired=on_interface_added
-    )
-
-    threading.Thread(target=GLib.MainLoop().run, daemon=True).start()

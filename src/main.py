@@ -9,7 +9,8 @@ from bluetooth_setup import (
     power_on_bluetooth,
     unblock_bluetooth,
     enable_pairing_and_discovery,
-    monitor_devices
+    monitor_devices,
+    wait_for_ble_advertising
 )
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
@@ -33,6 +34,8 @@ async def main_async():
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGINT, shutdown)
     
+    await wait_for_ble_advertising()
+
     # Start input loops
     asyncio.create_task(keyboard_loop(keyboard_event, ble))
     logger.debug("Keyboard loop started")
@@ -40,6 +43,7 @@ async def main_async():
     logger.debug("Mouse loop started")
 
     # Keep the loop alive
+    
     try:
         await asyncio.Event().wait()  # Wait forever until cancelled
     except asyncio.CancelledError:
@@ -69,8 +73,6 @@ if __name__ == "__main__":
         ble_thread = threading.Thread(target=start_ble, daemon=True)
         ble_thread.start()
         logger.debug("BLE Advertisment Loop Started")
-
-        time.sleep(5) 
 
         # Register signal handler for graceful shutdown
         loop = asyncio.get_event_loop()
