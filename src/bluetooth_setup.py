@@ -147,8 +147,8 @@ def create_peripheral():
     
     
     # Register connection lifecycle callbacks
-    ble.on_connect = on_connect(ble.adapter_address)
-    ble.on_disconnect = on_disconnect(ble.adapter_address)
+    ble.on_connect = on_connect
+    ble.on_disconnect = on_disconnect
 
     return ble
 
