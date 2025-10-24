@@ -100,26 +100,26 @@ def trust_connected_devices():
 
 def auto_trust_on_connect():
     bus = SystemBus()
-    mngr = bus.get('org.bluez', '/')
 
-    def on_interface_added(path, interfaces):
-        if 'org.bluez.Device1' in interfaces:
-            device = bus.get('org.bluez', path)
-            if device.Connected:
+    def on_interface_added(sender, object_path, iface, signal, params):
+        # params is a tuple: (path, interfaces)
+        if len(params) == 2:
+            path, interfaces = params
+            if 'org.bluez.Device1' in interfaces:
                 try:
-                    device.Trusted = True
-                    logger.info(f"Auto-trusted device: {device.Address}")
+                    device = bus.get('org.bluez', path)
+                    if device.Connected:
+                        device.Trusted = True
+                        logger.info(f"Auto-trusted device: {device.Address}")
                 except Exception as e:
-                    logger.warning(f"Failed to auto-trust {device.Address}: {e}")
+                    logger.warning(f"Failed to auto-trust device at {path}: {e}")
 
     bus.subscribe(
         iface='org.freedesktop.DBus.ObjectManager',
         signal='InterfacesAdded',
-        object='/',
         signal_fired=on_interface_added
     )
 
     # Start GLib loop in a background thread
     import threading
     threading.Thread(target=GLib.MainLoop().run, daemon=True).start()
-
