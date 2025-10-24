@@ -23,6 +23,8 @@ def create_peripheral():
     ble.add_characteristic(1, 4, UUID_HID_CONTROL_POINT, b'\x00', False, ['write-without-response'])
     ble.add_characteristic(1, 5, UUID_REPORT, bytes([0x01] + [0x00]*8), True, ['read', 'notify'])  # Keyboard
     ble.add_characteristic(1, 6, UUID_REPORT, bytes([0x02, 0x00, 0x00, 0x00]), True, ['read', 'notify'])  # Mouse
+    ble.add_descriptor(1, 5, '2908', bytes([0x01, 0x01]))
+    ble.add_descriptor(1, 6, '2908', bytes([0x02, 0x01]))
     return ble
 
 def power_on_bluetooth():
@@ -54,19 +56,22 @@ def unblock_bluetooth():
 def enable_pairing_and_discovery():
     logger.debug("Enabling Bluetooth discoverable and pairable mode...")
     try:
-        cmd = """
-bluetoothctl <<EOF
-discoverable on
-pairable on
-agent NoInputNoOutput
-default-agent
-EOF
-        """
-        subprocess.run(cmd, shell=True, check=True, executable="/bin/bash")
+        subprocess.run(
+            ['bluetoothctl'],
+            input='\n'.join([
+                'discoverable on',
+                'pairable on',
+                'agent NoInputNoOutput',
+                'default-agent'
+            ]),
+            text=True,
+            check=True
+        )
         logger.debug("Bluetooth is now discoverable and pairable.")
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to enable pairing/discovery: {e}")
         raise
+
 
 
 
