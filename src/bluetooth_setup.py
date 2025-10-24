@@ -183,7 +183,7 @@ def on_connect(device):
 
 def on_disconnect(device):
     try:
-        logger.warning(f"Central device disconnected: {device.Address}")
+        logger.warning(f"Central device disconnected: {device.address}")
     except AttributeError:
         logger.warning(f"Central device disconnected: {device}")
 
