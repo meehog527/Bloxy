@@ -146,8 +146,22 @@ def create_peripheral():
                            b'1.0', False, ['read'])
     ble.add_characteristic(3, 7, UUID_SOFTWARE_REV,
                            b'1.0.0', False, ['read'])
+    
+    
+    # Register connection lifecycle callbacks
+    ble.on_connect = on_connect(ble.adapter_address)
+    ble.on_disconnect = on_disconnect(ble.adapter_address)
 
     return ble
+
+
+def on_connect(device_addr):
+    logger.info(f"Central device connected: {device_addr}")
+
+def on_disconnect(device_addr):
+    logger.warning(f"Central device disconnected: {device_addr}")
+
+
 def power_on_bluetooth():
     logger.debug("Ensuring Bluetooth is powered on...")
     time.sleep(1.5)  # Give BlueZ time to settle
