@@ -153,7 +153,7 @@ def create_peripheral():
 
 def on_connect(device):
     try:
-        logger.info(f"Central device connected: {type(e).__name__}: {e}")
+        logger.info(f"Central device connected: {device.path}")
         
         # Get the D-Bus path for the connected device
         device_path = device.path  # This should be the full D-Bus object path
@@ -167,7 +167,7 @@ def on_connect(device):
         # Trust the device
         try:
             bluez_device.Trust()
-            logger.info(f"Trusted device: {type(e).__name__}: {e}")
+            logger.info(f"Trusted device: {device.path}")
         except Exception as e:
             logger.warning(f"Failed to trust device: {e}")
 
@@ -175,7 +175,7 @@ def on_connect(device):
         if not bluez_device.Paired:
             try:
                 bluez_device.Pair()
-                logger.info(f"Paired device: {type(e).__name__}: {e}")
+                logger.info(f"Paired device: {device.path}")
             except Exception as e:
                 logger.warning(f"Failed to pair device: {e}")
 
