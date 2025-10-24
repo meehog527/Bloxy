@@ -71,7 +71,7 @@ def create_peripheral():
                            False, ['write-without-response'])
 
     # Keyboard Input Report (Report ID 1)
-    keyboard_input_char = ble.add_characteristic(1, 5, UUID_REPORT,
+    ble.keyboard_input_char = ble.add_characteristic(1, 5, UUID_REPORT,
                            bytes([0x01] + [0x00]*8),
                            True, ['read', 'notify'])
     ble.add_descriptor(1, 5, 1, '2908', bytes([0x01, 0x01]), ['read'])  # Report Reference
@@ -145,13 +145,12 @@ def create_peripheral():
                            b'1.0', False, ['read'])
     ble.add_characteristic(3, 7, UUID_SOFTWARE_REV,
                            b'1.0.0', False, ['read'])
-    
-    
+      
     # Register connection lifecycle callbacks
     ble.on_connect = on_connect
     ble.on_disconnect = on_disconnect
 
-    return ble, keyboard_input_char
+    return ble
 
 def on_connect(device):
     try:
@@ -180,16 +179,11 @@ def on_connect(device):
     except Exception as e:
         logger.warning(f"🔗 Unhandled exception: {e}")
 
-
-
-
 def on_disconnect(device):
     try:
         logger.warning(f"Central device disconnected: {device.address}")
     except AttributeError:
         logger.warning(f"Central device disconnected: {device}")
-
-from bluezero.device import Device
 
 def monitor_devices():
     for dev in Device.available():
