@@ -57,7 +57,7 @@ def make_mouse_report():
 
 def get_keyboard_characteristic(ble):
     for char in ble.characteristics:
-        print(dir(char))
+        print(dir(char.props))
         if char.uuid == UUID_REPORT and char.value[0] == 0x01:
             return char
 
