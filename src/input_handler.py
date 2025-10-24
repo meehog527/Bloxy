@@ -105,12 +105,12 @@ async def keyboard_loop(path, ble):
                     else:
                         pressed_keys.discard(hid_code)
 
-                if connected:
-                    report = make_keyboard_report()
-                    logger.debug(f"Keyboard event: code={keycode}, value={value}, report={report}")
-                    
-                    keyboard_input_char = get_keyboard_characteristic(ble)
-                    keyboard_input_char.set_value(report)
+                #if connected:
+                report = make_keyboard_report()
+                logger.debug(f"Keyboard event: code={keycode}, value={value}, report={report}")
+                
+                keyboard_input_char = get_keyboard_characteristic(ble)
+                keyboard_input_char.set_value(report)
 
     except Exception as e:
         logger.error(f"Keyboard loop error: {e}")
@@ -137,10 +137,10 @@ async def mouse_loop(path, ble):
             logger.debug(f"Mouse event: code={ev.code}, value={ev.value}, report={report}")
 
             # Explicitly set value instead of notify
-            if connected:
-                mouse_char = get_mouse_characteristic(ble)
-                if mouse_char:
-                    mouse_char.set_value(report)
+            #if connected:
+            mouse_char = get_mouse_characteristic(ble)
+            if mouse_char:
+                mouse_char.set_value(report)
 
     except Exception as e:
         logger.error(f"Mouse loop error: {e}")
