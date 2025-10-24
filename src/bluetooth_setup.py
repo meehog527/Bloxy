@@ -43,7 +43,7 @@ def create_peripheral():
         appearance=963
     )
 
-    print(dir(ble))
+    print(dir(ble.mainloop))
 
     # -------------------------
     # HID Service (0x1812)
