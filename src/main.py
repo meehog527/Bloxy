@@ -55,7 +55,7 @@ async def main_async():
         logger.info("Shutdown requested.")
     finally:
         try:
-            ble.stop()
+            ble.quit()
             logger.info("Stopped advertising")
         except Exception as e:
             logger.warning(f"Failed to stop BLE advertising: {e}")
