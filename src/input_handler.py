@@ -4,7 +4,7 @@ import struct
 from logger import get_logger
 from evdev import InputDevice, ecodes
 from config import UUID_REPORT
-from bluetooth_setup.py import connected
+from bluetooth_setup import connected
 
 logger = get_logger("InputHandler")
 
