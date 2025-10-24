@@ -153,7 +153,8 @@ def create_peripheral():
 
 def on_connect(device):
     try:
-        logger.info(f"Central device connected: {device.path}")
+        logger.debug(f"Device attributes: {dir(device)}")
+        logger.info(f"Central device connected: {device}")
         
         # Get the D-Bus path for the connected device
         device_path = device.path  # This should be the full D-Bus object path
