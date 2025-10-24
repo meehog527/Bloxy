@@ -121,9 +121,7 @@ def create_peripheral():
 
     # Presentation Format descriptor (0x2904) for Battery Level
     # Format=uint8 (0x04), Exponent=0, Unit=percentage (0x27AD)   
-    ble.add_descriptor(2, 1, 1, '2904',
-                    bytes([0x04, 0x27, 0xAD, 0x01]),  # Format=uint8, Unit=percentage, Namespace=1
-                    ['read'])
+    ble.add_descriptor(2, 1, 1, '2904', 'Format: uint8, Unit: %'.encode('utf-8'), ['read'])
 
     # -------------------------
     # Device Information Service (0x180A)
