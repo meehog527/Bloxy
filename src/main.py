@@ -34,7 +34,7 @@ async def main_async():
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGINT, shutdown)
     
-    await wait_for_ble_advertising()
+    
 
     # Start input loops
     asyncio.create_task(keyboard_loop(keyboard_event, ble))
