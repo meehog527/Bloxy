@@ -36,19 +36,17 @@ async def main_async():
     unblock_bluetooth()
     power_on_bluetooth()
     enable_pairing_and_discovery()
+    
     # Start BLE in a background thread
     ble_thread = threading.Thread(target=start_ble, daemon=True)
     ble_thread.start()
+    logger.debug("BLE published")
 
     monitor_devices()
 
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGINT, shutdown)
     
-    # Start BLE advertising
-    asyncio.create_task(safe_publish(ble))
-    logger.debug("BLE published")
-
     # Start input loops
     asyncio.create_task(keyboard_loop(keyboard_event, ble))
     logger.debug("Keyboard loop started")
