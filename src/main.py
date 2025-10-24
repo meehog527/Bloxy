@@ -19,6 +19,15 @@ logger = logging.getLogger("hid-proxy")
 # Global BLE object
 ble = None
 
+
+async def safe_publish(ble):
+    try:
+        await asyncio.wait_for(asyncio.to_thread(ble.publish), timeout=5)
+        logger.info("BLE advertising started.")
+    except asyncio.TimeoutError:
+        logger.error("BLE publish timed out.")
+
+
 async def main_async():
     global ble
 
@@ -38,7 +47,7 @@ async def main_async():
     loop.add_signal_handler(signal.SIGINT, shutdown)
     
     # Start BLE advertising
-    asyncio.create_task(ble.publish())
+    asyncio.create_task(safe_publish(ble))
     logger.debug("BLE published")
 
     # Start input loops
