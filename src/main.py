@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import sys
-from bluetooth_setup import create_peripheral, power_on_bluetooth, unblock_bluetooth
+from bluetooth_setup import create_peripheral, power_on_bluetooth, unblock_bluetooth, enable_pairing_and_discovery
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
 
@@ -17,6 +17,7 @@ def main():
     #setup bluetooth
     unblock_bluetooth()
     power_on_bluetooth()
+    enable_pairing_and_discovery()
     ble = create_peripheral()
     ble.publish()
 

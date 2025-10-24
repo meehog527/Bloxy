@@ -36,7 +36,6 @@ def power_on_bluetooth():
         logger.error(f"Failed to power on Bluetooth: {e}")
         raise
 
-
 def unblock_bluetooth():
     try:
         # Check rfkill status
@@ -51,4 +50,17 @@ def unblock_bluetooth():
         logger.error(f"Error running rfkill: {e}")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        
+def enable_pairing_and_discovery():
+    try:
+        logger.debug("Enabling Bluetooth discoverable and pairable mode...")
+        subprocess.run(["bluetoothctl", "discoverable", "on"], check=True)
+        subprocess.run(["bluetoothctl", "pairable", "on"], check=True)
+        subprocess.run(["bluetoothctl", "agent", "NoInputNoOutput"], check=True)
+        subprocess.run(["bluetoothctl", "default-agent"], check=True)
+        logger.debug("Bluetooth is now discoverable and pairable.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to enable pairing/discovery: {e}")
+        raise
+
 
