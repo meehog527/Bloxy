@@ -57,9 +57,14 @@ def make_mouse_report():
 
 def get_keyboard_characteristic(ble):
     for char in ble.characteristics:
-        print(char.props)
-        if char.props["UUID"] == UUID_REPORT and char.props["Value"][0] == 0x01:
-            return char
+        props = getattr(char, 'props', {})
+        uuid = props.get('org.bluez.GattCharacteristic1', {}).get('UUID')
+        if uuid == '00002a4d-0000-1000-8000-00805f9b34fb':  # UUID_REPORT
+            value = props.get('org.bluez.GattCharacteristic1', {}).get('Value', [])
+            if value and value[0] == 0x01:  # Report ID 1
+                return char
+    return None
+
 
 # Async loops
 async def keyboard_loop(path, ble):
