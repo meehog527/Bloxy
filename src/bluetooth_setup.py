@@ -193,7 +193,7 @@ def monitor_devices():
     for dev in Device.available():
         try:
             logger.info(f"Monitoring device: {dev.address}")
-            logger.info(f"  Connected={dev.connected}, Paired={dev.Paired}, ServicesResolved={dev.services_resolved}")
+            logger.info(f"  Connected={dev.connected}, Paired={dev.paired}, ServicesResolved={dev.services_resolved}")
             logger.info(f"  RSSI={getattr(dev, 'RSSI', 'n/a')}, MTU={getattr(dev, 'MTU', 'n/a')}")
         except Exception as e:
             logger.warning(f"Failed to read device state for {dev.address}: {e}")
