@@ -93,8 +93,6 @@ async def keyboard_loop(path, ble):
                 
                 keyboard_input_char = get_keyboard_characteristic(ble)
                 keyboard_input_char.set_value(report)
-                print(dir(keyboard_input_char))
-                keyboard_input_char.notify(report)
 
     except Exception as e:
         logger.error(f"Keyboard loop error: {e}")
