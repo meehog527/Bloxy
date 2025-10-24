@@ -27,3 +27,19 @@ def create_peripheral():
 def power_on_bluetooth():
     logger.debug("Ensuring Bluetooth is powered on...")
     subprocess.run(["bluetoothctl", "power", "on"], check=True)
+
+def unblock_bluetooth():
+    try:
+        # Check rfkill status
+        result = subprocess.run(['rfkill', 'list', 'bluetooth'], capture_output=True, text=True)
+        if 'Soft blocked: yes' in result.stdout:
+            logger.debug("Bluetooth is soft blocked. Unblocking...")
+            subprocess.run(['sudo', 'rfkill', 'unblock', 'bluetooth'], check=True)
+            logger.debug("Bluetooth unblocked.")
+        else:
+            logger.debug("Bluetooth is already unblocked.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error running rfkill: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+

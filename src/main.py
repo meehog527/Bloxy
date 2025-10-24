@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import sys
-from bluetooth_setup import create_peripheral, power_on_bluetooth
+from bluetooth_setup import create_peripheral, power_on_bluetooth, unblock_bluetooth
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
 
@@ -14,6 +14,8 @@ def main():
         logger.error("Keyboard/mouse not detected.")
         sys.exit(1)
 
+    #setup bluetooth
+    unblock_bluetooth()
     power_on_bluetooth()
     ble = create_peripheral()
     ble.publish()
