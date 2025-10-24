@@ -163,7 +163,19 @@ def on_disconnect(device):
     except AttributeError:
         logger.warning(f"Central device disconnected: {device}")
 
+def monitor_devices():
+    from bluezero import adapter, device
+    ad = adapter.Adapter()
+    for dev_addr in ad.devices:
+        dev = device.Device(dev_addr)
+        logger.info(f"Monitoring {dev.Address}: Connected={dev.Connected}, Paired={dev.Paired}")
+        logger.info(f"RSSI={getattr(dev, 'RSSI', 'n/a')}, MTU={getattr(dev, 'MTU', 'n/a')}")
 
+        def prop_changed(iface, changed, invalidated, path=dev.path):
+            for key, value in changed.items():
+                logger.info(f"{dev.Address} {key} changed to {value}")
+
+        dev.on_properties_changed = prop_changed
 
 def power_on_bluetooth():
     logger.debug("Ensuring Bluetooth is powered on...")
