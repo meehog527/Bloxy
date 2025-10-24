@@ -121,8 +121,7 @@ def create_peripheral():
 
     # Presentation Format descriptor (0x2904) for Battery Level
     # Format=uint8 (0x04), Exponent=0, Unit=percentage (0x27AD)
-    ble.add_descriptor(2, 1, 1, '2904', 'Format: uint8, Unit: %', ['read'])
-
+    ble.add_descriptor(2, 1, 1, '2904', bytes([0x04, 0x27, 0xAD]), ['read'])
 
     # -------------------------
     # Device Information Service (0x180A)
@@ -152,12 +151,18 @@ def create_peripheral():
 
     return ble
 
+def on_connect(device):
+    try:
+        logger.info(f"Central device connected: {device.Address}")
+    except AttributeError:
+        logger.warning(f"Central device connected: {device}")
 
-def on_connect(device_addr):
-    logger.info(f"Central device connected: {device_addr}")
+def on_disconnect(device):
+    try:
+        logger.warning(f"Central device disconnected: {device.Address}")
+    except AttributeError:
+        logger.warning(f"Central device disconnected: {device}")
 
-def on_disconnect(device_addr):
-    logger.warning(f"Central device disconnected: {device_addr}")
 
 
 def power_on_bluetooth():
