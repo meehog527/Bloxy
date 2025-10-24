@@ -24,10 +24,11 @@ def create_peripheral():
     ble.add_characteristic(1, 5, UUID_REPORT, bytes([0x01] + [0x00]*8), True, ['read', 'notify'])  # Keyboard
     ble.add_characteristic(1, 6, UUID_REPORT, bytes([0x02, 0x00, 0x00, 0x00]), True, ['read', 'notify'])  # Mouse
     # Keyboard: Report ID 1, Input Report
-    ble.add_descriptor(1, 5, '2908', bytes([0x01, 0x01]), True, ['read'])
+    ble.add_descriptor(1, 5, 1, '2908', bytes([0x01, 0x01]), ['read'])
 
     # Mouse: Report ID 2, Input Report
-    ble.add_descriptor(1, 6, '2908', bytes([0x02, 0x01]), True, ['read'])
+    ble.add_descriptor(1, 6, 1, '2908', bytes([0x02, 0x01]), ['read'])
+
 
 
     return ble
