@@ -141,26 +141,3 @@ async def mouse_loop(path, ble):
 
     except Exception as e:
         logger.error(f"Mouse loop error: {e}")
-    global dx, dy, mouse_buttons
-    try:
-        dev = InputDevice(path)
-        async for ev in dev.async_read_loop():
-            if ev.type == ecodes.EV_REL:
-                if ev.code == ecodes.REL_X:
-                    dx += ev.value
-                elif ev.code == ecodes.REL_Y:
-                    dy += ev.value
-            elif ev.type == ecodes.EV_KEY:
-                if ev.code == ecodes.BTN_LEFT:
-                    mouse_buttons = mouse_buttons | 0x01 if ev.value else mouse_buttons & ~0x01
-                elif ev.code == ecodes.BTN_RIGHT:
-                    mouse_buttons = mouse_buttons | 0x02 if ev.value else mouse_buttons & ~0x02
-                elif ev.code == ecodes.BTN_MIDDLE:
-                    mouse_buttons = mouse_buttons | 0x04 if ev.value else mouse_buttons & ~0x04
-
-            report = make_mouse_report()
-            logger.debug(f"Mouse event: code={ev.code}, value={ev.value}, report={report}")
-            ble.update_characteristic_value(1, 6, report)
-            ble.notify(1, 6)
-    except Exception as e:
-        logger.error(f"Mouse loop error: {e}")
