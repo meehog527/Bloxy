@@ -25,7 +25,7 @@ async def main_async():
     power_on_bluetooth()
     enable_pairing_and_discovery()
     ble = create_peripheral()
-    auto_trust_on_connect()
+    #auto_trust_on_connect()
 
 
     # Run BLE publish inside the event loop
