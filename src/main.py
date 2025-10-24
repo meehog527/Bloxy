@@ -63,6 +63,8 @@ def shutdown():
         task.cancel()
 
 def start_ble():
+    global ble
+    
     unblock_bluetooth()
     power_on_bluetooth()
     enable_pairing_and_discovery()
