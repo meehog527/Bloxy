@@ -1,6 +1,9 @@
 import struct
+from logger import get_logger
 from evdev import InputDevice, ecodes
 from config import UUID_REPORT
+
+logger = get_logger("InputHandler")
 
 # Modifier and key mappings
 MODIFIERS = {
@@ -57,6 +60,7 @@ async def keyboard_loop(path, ble):
     dev = InputDevice(path)
     async for ev in dev.async_read_loop():
         # handle modifiers and keys
+        logger.debug(f"Sending keyboard report: {report}")
         report = make_keyboard_report()
         ble.update_characteristic_value(1, 5, report)
         ble.notify(1, 5)
@@ -65,6 +69,7 @@ async def mouse_loop(path, ble):
     dev = InputDevice(path)
     async for ev in dev.async_read_loop():
         # handle buttons and movement
+        logger.debug(f"Sending mouse report: {report}")
         report = make_mouse_report()
         ble.update_characteristic_value(1, 6, report)
         ble.notify(1, 6)
