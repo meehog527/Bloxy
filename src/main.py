@@ -38,7 +38,7 @@ async def main_async():
     loop.add_signal_handler(signal.SIGINT, shutdown)
     
     # Start BLE advertising
-    ble.publish()
+    asyncio.create_task(ble.publish())
     logger.debug("BLE published")
 
     # Start input loops
