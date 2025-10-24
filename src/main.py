@@ -20,6 +20,7 @@ def main():
     enable_pairing_and_discovery()
     ble = create_peripheral()
     ble.publish()
+    logger.debug("BLE published")
 
     loop = asyncio.get_event_loop()
     loop.create_task(keyboard_loop(keyboard_event, ble))
