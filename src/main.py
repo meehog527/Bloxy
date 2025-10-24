@@ -31,14 +31,18 @@ async def wait_for_ble_advertising():
                 text=True,
                 check=True
             )
-            if "AdvertisingFlags" in result.stdout:
-                logger.info("✅ BLE advertising is active.")
-                return
-            else:
-                logger.debug("Waiting for BLE advertising to become active...")
+            output = result.stdout
+            for line in output.splitlines():
+                if "ActiveInstances:" in line:
+                    value = line.strip().split(":")[1].strip().split(" ")[0]
+                    if value != "0x00":
+                        logger.info("✅ BLE advertising is active.")
+                        return
+                    else:
+                        logger.debug("Waiting for BLE advertising to become active...")
         except subprocess.CalledProcessError as e:
             logger.warning(f"Error checking BLE advertising status: {e}")
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
 
 async def main_async():
     global ble
