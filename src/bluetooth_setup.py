@@ -3,6 +3,7 @@ from config import *
 from report_map import REPORT_MAP
 from logger import get_logger
 import subprocess
+import time
 
 LOCAL_NAME = "Bloxy"
 
@@ -26,7 +27,15 @@ def create_peripheral():
 
 def power_on_bluetooth():
     logger.debug("Ensuring Bluetooth is powered on...")
-    subprocess.run(["bluetoothctl", "power", "on"], check=True)
+    time.sleep(1.5)  # Give BlueZ time to settle
+    
+    try:
+        subprocess.run(["bluetoothctl", "power", "on"], check=True)
+        logger.debug("Bluetooth powered on.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to power on Bluetooth: {e}")
+        raise
+
 
 def unblock_bluetooth():
     try:
