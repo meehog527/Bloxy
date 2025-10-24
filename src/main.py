@@ -24,7 +24,7 @@ ble = None
 
 async def main_async():
     global ble
-    
+
     keyboard_event, mouse_event = autodetect_inputs()
     if not keyboard_event or not mouse_event:
         logger.error("Keyboard/mouse not detected.")
@@ -67,6 +67,7 @@ def start_ble():
     power_on_bluetooth()
     enable_pairing_and_discovery()
     ble = create_peripheral()
+    print(dir(ble))
     ble.publish()
 
 if __name__ == "__main__":
