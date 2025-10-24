@@ -45,6 +45,8 @@ mouse_buttons = 0
 dx, dy = 0, 0
 
 def make_keyboard_report():
+    global pressed_keys
+    
     keys = list(pressed_keys)[:6] + [0x00] * (6 - len(pressed_keys))
     return bytes([0x01, modifier_mask, 0x00] + keys)
 
@@ -70,6 +72,8 @@ def get_keyboard_characteristic(ble):
 # Async loops
 async def keyboard_loop(path, ble):
     global modifier_mask
+    global pressed_keys
+
     try:
         dev = InputDevice(path)
         async for ev in dev.async_read_loop():
