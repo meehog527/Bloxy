@@ -56,7 +56,7 @@ def make_mouse_report():
     return struct.pack("bbbb", 0x02, mouse_buttons, cdx, cdy)
 
 # Async loops
-async def keyboard_loop(path, ble):
+async def keyboard_loop(path, keyboard_input_char):
     global modifier_mask
     try:
         dev = InputDevice(path)
@@ -79,12 +79,10 @@ async def keyboard_loop(path, ble):
 
                 report = make_keyboard_report()
                 logger.debug(f"Keyboard event: code={keycode}, value={value}, report={report}")
-                print(dir(ble))
-                if ble is None:
-                    logger.debug("BLE is none!!")
-                    
-                ble.update_characteristic_value(1, 5, report)
-                ble.notify(1, 5)
+                
+                keyboard_input_char.set_value(report)
+                keyboard_input_char.notify(report)
+
     except Exception as e:
         logger.error(f"Keyboard loop error: {e}")
 
