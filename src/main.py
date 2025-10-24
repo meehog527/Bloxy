@@ -38,8 +38,7 @@ async def main_async():
     enable_pairing_and_discovery()
     
     # Start BLE in a background thread
-    ble_thread = threading.Thread(target=start_ble, daemon=True)
-    ble_thread.start()
+    await asyncio.to_thread(ble.publish)
     logger.debug("BLE published")
 
     monitor_devices()
