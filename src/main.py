@@ -2,6 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
+import threading
 from bluetooth_setup import (
     create_peripheral,
     power_on_bluetooth,
@@ -19,16 +20,9 @@ logger = logging.getLogger("hid-proxy")
 # Global BLE object
 ble = None
 
-
-async def safe_publish(ble):
-    try:
-        await asyncio.wait_for(asyncio.to_thread(ble.publish), timeout=5)
-        logger.info("BLE advertising started.")
-    except asyncio.TimeoutError:
-        logger.error("BLE publish timed out.")
-    except asyncio.CancelledError:
-        logger.error("Publish loop cancelled.")
-
+def start_ble():
+    ble = create_peripheral()
+    ble.publish()
 
 async def main_async():
     global ble
@@ -42,7 +36,10 @@ async def main_async():
     unblock_bluetooth()
     power_on_bluetooth()
     enable_pairing_and_discovery()
-    ble = create_peripheral()
+    # Start BLE in a background thread
+    ble_thread = threading.Thread(target=start_ble, daemon=True)
+    ble_thread.start()
+
     monitor_devices()
 
     loop = asyncio.get_running_loop()
