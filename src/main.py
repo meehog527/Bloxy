@@ -82,6 +82,6 @@ if __name__ == "__main__":
             loop.add_signal_handler(sig, shutdown)
 
         asyncio.run(main_async())
-    except KeyboardInterrupt:
+    except asyncio.CancelledError:
         print("KeyboardInterrupt received. Exiting cleanly.")
 
