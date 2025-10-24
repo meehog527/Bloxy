@@ -5,7 +5,8 @@ from bluetooth_setup import (
     create_peripheral,
     power_on_bluetooth,
     unblock_bluetooth,
-    enable_pairing_and_discovery
+    enable_pairing_and_discovery,
+    auto_trust_on_connect
 )
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
@@ -24,6 +25,8 @@ async def main_async():
     power_on_bluetooth()
     enable_pairing_and_discovery()
     ble = create_peripheral()
+    auto_trust_on_connect()
+
 
     # Run BLE publish inside the event loop
     def publish_ble():

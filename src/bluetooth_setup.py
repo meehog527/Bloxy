@@ -2,6 +2,8 @@ from bluezero import peripheral, adapter
 from config import *
 from report_map import REPORT_MAP
 from logger import get_logger
+from pydbus import SystemBus
+from gi.repository import GLib
 import subprocess
 import time
 
@@ -78,6 +80,46 @@ def enable_pairing_and_discovery():
         logger.error(f"Failed to enable pairing/discovery: {e}")
         raise
 
+def trust_connected_devices():
+    logger.debug("Checking for connected devices to trust...")
+    bus = SystemBus()
+    mngr = bus.get('org.bluez', '/')
+    objects = mngr.GetManagedObjects()
 
+    for path, interfaces in objects.items():
+        if 'org.bluez.Device1' in interfaces:
+            device = interfaces['org.bluez.Device1']
+            if device.get('Connected', False):
+                mac = path.split('/')[-1].replace('dev_', '').replace('_', ':')
+                try:
+                    dev_obj = bus.get('org.bluez', path)
+                    dev_obj.Trusted = True
+                    logger.info(f"Trusted device: {mac}")
+                except Exception as e:
+                    logger.warning(f"Failed to trust {mac}: {e}")
 
+def auto_trust_on_connect():
+    bus = SystemBus()
+    mngr = bus.get('org.bluez', '/')
+
+    def on_interface_added(path, interfaces):
+        if 'org.bluez.Device1' in interfaces:
+            device = bus.get('org.bluez', path)
+            if device.Connected:
+                try:
+                    device.Trusted = True
+                    logger.info(f"Auto-trusted device: {device.Address}")
+                except Exception as e:
+                    logger.warning(f"Failed to auto-trust {device.Address}: {e}")
+
+    bus.subscribe(
+        iface='org.freedesktop.DBus.ObjectManager',
+        signal='InterfacesAdded',
+        object='/',
+        signal_fired=on_interface_added
+    )
+
+    # Start GLib loop in a background thread
+    import threading
+    threading.Thread(target=GLib.MainLoop().run, daemon=True).start()
 
