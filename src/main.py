@@ -26,6 +26,8 @@ async def safe_publish(ble):
         logger.info("BLE advertising started.")
     except asyncio.TimeoutError:
         logger.error("BLE publish timed out.")
+    except asyncio.CancelledError:
+        logger.error("Publish loop cancelled.")
 
 
 async def main_async():
