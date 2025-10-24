@@ -62,6 +62,7 @@ def get_keyboard_characteristic(ble):
         if uuid == UUID_REPORT:  # UUID_REPORT
             value = props.get('org.bluez.GattCharacteristic1', {}).get('Value', [])
             if value and value[0] == 0x01:  # Report ID 1
+                print(char)
                 return char
     return None
 
