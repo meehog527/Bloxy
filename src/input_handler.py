@@ -58,7 +58,7 @@ def make_mouse_report():
 def get_keyboard_characteristic(ble):
     for char in ble.characteristics:
         print(char.props)
-        if char.props.UUID == UUID_REPORT and char.props.Value[0] == 0x01:
+        if char.props["UUID"] == UUID_REPORT and char.props["Value"][0] == 0x01:
             return char
 
 # Async loops
