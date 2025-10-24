@@ -21,9 +21,11 @@ logger = logging.getLogger("hid-proxy")
 
 # Global BLE object
 ble = None
+keyboard_input_char = None
 
 async def main_async():
     global ble
+    global keyboard_input_char
 
     keyboard_event, mouse_event = autodetect_inputs()
     if not keyboard_event or not mouse_event:
@@ -38,7 +40,7 @@ async def main_async():
     await wait_for_ble_advertising()
 
     # Start input loops
-    asyncio.create_task(keyboard_loop(keyboard_event, ble))
+    asyncio.create_task(keyboard_loop(keyboard_event, keyboard_input_char))
     logger.debug("Keyboard loop started")
     asyncio.create_task(mouse_loop(mouse_event, ble))
     logger.debug("Mouse loop started")
@@ -64,11 +66,11 @@ def shutdown():
 
 def start_ble():
     global ble
-    
+
     unblock_bluetooth()
     power_on_bluetooth()
     enable_pairing_and_discovery()
-    ble = create_peripheral()
+    ble, keyboard_input_char = create_peripheral()
     print(dir(ble))
     ble.publish()
 
