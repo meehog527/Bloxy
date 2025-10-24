@@ -55,6 +55,7 @@ async def main_async():
         logger.info("Shutdown requested.")
     finally:
         try:
+            print(dir(ble))
             ble.quit()
             logger.info("Stopped advertising")
         except Exception as e:
