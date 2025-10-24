@@ -23,8 +23,10 @@ def main():
 
     loop = asyncio.get_event_loop()
     loop.create_task(keyboard_loop(keyboard_event, ble))
+    logger.debug("Keyboard loop started")
     loop.create_task(mouse_loop(mouse_event, ble))
-
+    logger.debug("Mouse loop started")
+    
     try:
         loop.run_forever()
     except KeyboardInterrupt:

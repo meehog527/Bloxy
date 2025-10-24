@@ -57,19 +57,54 @@ def make_mouse_report():
 
 # Async loops
 async def keyboard_loop(path, ble):
-    dev = InputDevice(path)
-    async for ev in dev.async_read_loop():
-        # handle modifiers and keys
-        logger.debug(f"Sending keyboard report: {report}")
-        report = make_keyboard_report()
-        ble.update_characteristic_value(1, 5, report)
-        ble.notify(1, 5)
+    global modifier_mask
+    try:
+        dev = InputDevice(path)
+        async for ev in dev.async_read_loop():
+            if ev.type == ecodes.EV_KEY:
+                keycode = ev.code
+                value = ev.value  # 1 = press, 0 = release
+
+                if keycode in MODIFIERS:
+                    if value:
+                        modifier_mask |= MODIFIERS[keycode]
+                    else:
+                        modifier_mask &= ~MODIFIERS[keycode]
+                elif keycode in KEY_TO_HID:
+                    hid_code = KEY_TO_HID[keycode]
+                    if value:
+                        pressed_keys.add(hid_code)
+                    else:
+                        pressed_keys.discard(hid_code)
+
+                report = make_keyboard_report()
+                logger.debug(f"Keyboard event: code={keycode}, value={value}, report={report}")
+                ble.update_characteristic_value(1, 5, report)
+                ble.notify(1, 5)
+    except Exception as e:
+        logger.error(f"Keyboard loop error: {e}")
 
 async def mouse_loop(path, ble):
-    dev = InputDevice(path)
-    async for ev in dev.async_read_loop():
-        # handle buttons and movement
-        logger.debug(f"Sending mouse report: {report}")
-        report = make_mouse_report()
-        ble.update_characteristic_value(1, 6, report)
-        ble.notify(1, 6)
+    global dx, dy, mouse_buttons
+    try:
+        dev = InputDevice(path)
+        async for ev in dev.async_read_loop():
+            if ev.type == ecodes.EV_REL:
+                if ev.code == ecodes.REL_X:
+                    dx += ev.value
+                elif ev.code == ecodes.REL_Y:
+                    dy += ev.value
+            elif ev.type == ecodes.EV_KEY:
+                if ev.code == ecodes.BTN_LEFT:
+                    mouse_buttons = mouse_buttons | 0x01 if ev.value else mouse_buttons & ~0x01
+                elif ev.code == ecodes.BTN_RIGHT:
+                    mouse_buttons = mouse_buttons | 0x02 if ev.value else mouse_buttons & ~0x02
+                elif ev.code == ecodes.BTN_MIDDLE:
+                    mouse_buttons = mouse_buttons | 0x04 if ev.value else mouse_buttons & ~0x04
+
+            report = make_mouse_report()
+            logger.debug(f"Mouse event: code={ev.code}, value={ev.value}, report={report}")
+            ble.update_characteristic_value(1, 6, report)
+            ble.notify(1, 6)
+    except Exception as e:
+        logger.error(f"Mouse loop error: {e}")
