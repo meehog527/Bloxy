@@ -72,7 +72,7 @@ def start_ble():
 
     unblock_bluetooth()
     power_on_bluetooth()
-    trust_connected_devices()
+    #trust_connected_devices()
     enable_pairing_and_discovery()
     ble = create_peripheral()
 
