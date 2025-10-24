@@ -3,6 +3,7 @@ import logging
 import signal
 import sys
 import threading
+import time
 from bluetooth_setup import (
     create_peripheral,
     power_on_bluetooth,
@@ -62,12 +63,14 @@ def start_ble():
     enable_pairing_and_discovery()
     ble = create_peripheral()
     ble.publish()
-    
+
 if __name__ == "__main__":
     try:
         ble_thread = threading.Thread(target=start_ble, daemon=True)
         ble_thread.start()
         logger.debug("BLE Advertisment Loop Started")
+
+        time.sleep(5) 
 
         # Register signal handler for graceful shutdown
         loop = asyncio.get_event_loop()
