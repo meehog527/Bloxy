@@ -38,7 +38,7 @@ async def wait_for_ble_advertising():
                 logger.debug("Waiting for BLE advertising to become active...")
         except subprocess.CalledProcessError as e:
             logger.warning(f"Error checking BLE advertising status: {e}")
-        await asyncio.sleep(1000)
+        await asyncio.sleep(5)
 
 async def main_async():
     global ble
