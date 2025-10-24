@@ -52,15 +52,21 @@ def unblock_bluetooth():
         logger.error(f"Unexpected error: {e}")
         
 def enable_pairing_and_discovery():
+    logger.debug("Enabling Bluetooth discoverable and pairable mode...")
     try:
-        logger.debug("Enabling Bluetooth discoverable and pairable mode...")
-        subprocess.run(["bluetoothctl", "discoverable", "on"], check=True)
-        subprocess.run(["bluetoothctl", "pairable", "on"], check=True)
-        subprocess.run(["bluetoothctl", "agent", "NoInputNoOutput"], check=True)
-        subprocess.run(["bluetoothctl", "default-agent"], check=True)
+        cmd = """
+        bluetoothctl << EOF
+        discoverable on
+        pairable on
+        agent NoInputNoOutput
+        default-agent
+        EOF
+        """
+        subprocess.run(cmd, shell=True, check=True, executable="/bin/bash")
         logger.debug("Bluetooth is now discoverable and pairable.")
     except subprocess.CalledProcessError as e:
         logger.error(f"Failed to enable pairing/discovery: {e}")
         raise
+
 
 
