@@ -13,7 +13,8 @@ from bluetooth_setup import (
     unblock_bluetooth,
     enable_pairing_and_discovery,
     monitor_devices,
-    wait_for_ble_advertising
+    wait_for_ble_advertising,
+    trust_connected_devices
 )
 from input_handler import keyboard_loop, mouse_loop
 from input_devices import autodetect_inputs
@@ -71,6 +72,7 @@ def start_ble():
 
     unblock_bluetooth()
     power_on_bluetooth()
+    trust_connected_devices()
     enable_pairing_and_discovery()
     ble = create_peripheral()
 

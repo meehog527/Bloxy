@@ -154,7 +154,10 @@ def create_peripheral():
 
     return ble
 
+connected = False
+
 def on_connect(device):
+    global connected
     try:
         logger.info(f"🔗 Central device connected: {device.address}")
 
@@ -172,6 +175,7 @@ def on_connect(device):
         if not device.paired:
             try:
                 device.pair()
+                connected = True
                 logger.info(f"✅ Paired device: {device.address}")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to pair device: {e}")
@@ -182,7 +186,9 @@ def on_connect(device):
         logger.warning(f"🔗 Unhandled exception: {e}")
 
 def on_disconnect(device):
+    global connected
     try:
+        connected = False
         logger.warning(f"Central device disconnected: {device.address}")
     except AttributeError:
         logger.warning(f"Central device disconnected: {device}")
