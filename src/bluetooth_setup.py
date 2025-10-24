@@ -44,7 +44,7 @@ def create_peripheral():
     ble = peripheral.Peripheral(
         adapter_address=get_adapter_address(),
         local_name=LOCAL_NAME,
-        appearance=963
+        appearance=961
     )
 
     # -------------------------
