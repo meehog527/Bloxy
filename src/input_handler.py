@@ -70,6 +70,16 @@ def get_keyboard_characteristic(ble):
     return None
 
 
+def get_mouse_characteristic(ble):
+    for char in ble.characteristics:
+        props = getattr(char, 'props', {})
+        uuid = props.get('org.bluez.GattCharacteristic1', {}).get('UUID')
+        value = props.get('org.bluez.GattCharacteristic1', {}).get('Value', [])
+        if uuid == UUID_REPORT and value and value[0] == 0x02:  # Report ID 2
+            return char
+    return None
+
+
 # Async loops
 async def keyboard_loop(path, ble):
     global modifier_mask
@@ -104,6 +114,33 @@ async def keyboard_loop(path, ble):
         logger.error(f"Keyboard loop error: {e}")
 
 async def mouse_loop(path, ble):
+    global dx, dy, mouse_buttons
+    try:
+        dev = InputDevice(path)
+        async for ev in dev.async_read_loop():
+            if ev.type == ecodes.EV_REL:
+                if ev.code == ecodes.REL_X:
+                    dx += ev.value
+                elif ev.code == ecodes.REL_Y:
+                    dy += ev.value
+            elif ev.type == ecodes.EV_KEY:
+                if ev.code == ecodes.BTN_LEFT:
+                    mouse_buttons = mouse_buttons | 0x01 if ev.value else mouse_buttons & ~0x01
+                elif ev.code == ecodes.BTN_RIGHT:
+                    mouse_buttons = mouse_buttons | 0x02 if ev.value else mouse_buttons & ~0x02
+                elif ev.code == ecodes.BTN_MIDDLE:
+                    mouse_buttons = mouse_buttons | 0x04 if ev.value else mouse_buttons & ~0x04
+
+            report = make_mouse_report()
+            logger.debug(f"Mouse event: code={ev.code}, value={ev.value}, report={report}")
+
+            # Explicitly set value instead of notify
+            mouse_char = get_mouse_characteristic(ble)
+            if mouse_char:
+                mouse_char.set_value(report)
+
+    except Exception as e:
+        logger.error(f"Mouse loop error: {e}")
     global dx, dy, mouse_buttons
     try:
         dev = InputDevice(path)
