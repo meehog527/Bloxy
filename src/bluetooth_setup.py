@@ -180,8 +180,10 @@ def on_connect(device):
                 logger.warning(f"Failed to pair device: {e}")
 
     except AttributeError as e:
-        logger.warning(f"🔗 Central device connected, but failed to access Address: {e}")
-        logger.debug(f"Device object: {repr(device)}")
+        logger.warning(f"🔗 Failed to access Address attribute: {type(e).__name__}: {e}")
+        logger.debug(f"Device object type: {type(device)}")
+        logger.debug(f"Device object repr: {repr(device)}")
+
 
 
 def on_disconnect(device):
