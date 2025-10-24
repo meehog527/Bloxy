@@ -36,6 +36,7 @@ async def main_async():
         logger.debug("BLE published")
 
     loop = asyncio.get_running_loop()
+    loop.add_signal_handler(signal.SIGINT, shutdown)
     
     # Run BLE publishing in a background thread
     ble_task = loop.run_in_executor(None, publish_ble)

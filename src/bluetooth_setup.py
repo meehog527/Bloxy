@@ -164,9 +164,8 @@ def on_disconnect(device):
         logger.warning(f"Central device disconnected: {device}")
 
 def monitor_devices():
-    from bluezero import adapter, device
-    ad = adapter.Adapter()
-    for dev_addr in ad.devices:
+    from bluezero import adapter, device, list_devices
+    for dev_addr in list_devices():
         dev = device.Device(dev_addr)
         logger.info(f"Monitoring {dev.Address}: Connected={dev.Connected}, Paired={dev.Paired}")
         logger.info(f"RSSI={getattr(dev, 'RSSI', 'n/a')}, MTU={getattr(dev, 'MTU', 'n/a')}")
