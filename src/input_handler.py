@@ -121,9 +121,11 @@ async def keyboard_loop(path, ble):
 async def mouse_loop(path, ble):
     global dx, dy, mouse_buttons
     try:
+        
         dev = InputDevice(path)
         async for ev in dev.async_read_loop():
             if ev.type == ecodes.EV_REL:
+                print(ev.type)
                 if ev.code == ecodes.REL_X:
                     dx += ev.value
                 elif ev.code == ecodes.REL_Y:
@@ -143,7 +145,7 @@ async def mouse_loop(path, ble):
             #if connected:
             mouse_char = get_mouse_characteristic(ble)
             if mouse_char:
-                mouse_char.set_value(report)
+                print("test")#mouse_char.set_value(report)
 
     except Exception as e:
         logger.error(f"Mouse loop error: {e}")
