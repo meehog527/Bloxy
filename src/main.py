@@ -38,7 +38,7 @@ async def main_async():
     await wait_for_ble_advertising()
 
     # Start input loops
-    asyncio.create_task(keyboard_loop(keyboard_event, ble.keyboard_input_char))
+    asyncio.create_task(keyboard_loop(keyboard_event, ble))
     logger.debug("Keyboard loop started")
     asyncio.create_task(mouse_loop(mouse_event, ble))
     logger.debug("Mouse loop started")
