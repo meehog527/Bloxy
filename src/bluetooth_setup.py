@@ -28,10 +28,52 @@ import subprocess
 import time
 import threading
 import asyncio
+import yaml
 
 LOCAL_NAME = "Bloxy"
 
 logger = get_logger("bluetooth_setup")
+
+class Peripheral:
+    def __init__(self):
+        self.localName = "Bloxy"
+        self.apperance = 961
+        
+    def GetAdapter(self):
+        adapter = adapter.Adapter()
+        return adapter
+        
+    def GetAdapterAddress(self):
+        adapterAdress = self.GetAdapter().address
+        return adapterAdress
+    
+    def load_yaml_config(path):
+        with open(path, 'r') as f:
+            return yaml.safe_load(f)
+
+    def extract_flags(flag_dict):
+        return [k.replace('_', '-') for k, v in flag_dict.items() if v]
+
+    def create_peripheral_from_yaml(config, adapter_addr, local_name='HID_Device'):
+        ble = peripheral.Peripheral(adapter_addr=adapter_addr, local_name=local_name)
+
+        for service in config['services']:
+            srv_id = service['ID']
+            ble.add_service(srv_id, service['uuid'], service['type'])
+
+            for char in service['characteristics']:
+                chr_id = char['ID']
+                value = bytes(char['value'])
+                flags = self.extract_flags(char['flags'])
+                ble.add_characteristic(srv_id, chr_id, char['uuid'], value, char['notifying'], flags)
+
+                for desc_index, desc in enumerate(char.get('descriptors', []), start=1):
+                    desc_value = bytes(desc['value'])
+                    desc_flags = self.extract_flags(desc['flags'])
+                    ble.add_descriptor(srv_id, chr_id, desc_index, desc['uuid'], desc_value, desc_flags)
+        return ble
+
+
 
 def get_adapter_address():
     ad = adapter.Adapter()
@@ -51,6 +93,7 @@ def create_peripheral():
     # HID Service (0x1812)
     # -------------------------
     ble.add_service(1, UUID_HID_SERVICE, primary=True)
+
 
     # HID Information characteristic (version, country code, flags)
     ble.add_characteristic(1, 1, UUID_HID_INFORMATION,
