@@ -1,10 +1,10 @@
-#Bloxy HID Peripheral
+# Bloxy HID Peripheral
 
 This project implements a Bluetooth HID peripheral (keyboard + mouse) using BlueZ and D‑Bus on Linux.
 It is split into two main components:
 
-• Daemon (daemon/): Runs headless, registers the HID GATT service with BlueZ, tracks evdev input, builds HID reports, and exposes a custom D‑Bus API.
-• UI Client (ui/): A curses‑based console interface that connects to the daemon over D‑Bus. It lets you inspect services, characteristics, descriptors, and toggle features in real time.
+- Daemon (daemon/): Runs headless, registers the HID GATT service with BlueZ, tracks evdev input, builds HID reports, and exposes a custom D‑Bus API.
+- UI Client (ui/): A curses‑based console interface that connects to the daemon over D‑Bus. It lets you inspect services, characteristics, descriptors, and toggle features in real time.
 
 
 ---
