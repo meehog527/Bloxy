@@ -46,12 +46,12 @@ pip install -r requirements.txt
 
 ### Running the Daemon
 
-Foreground run:
+Foreground run
 
 sudo -E env PYTHONPATH=. python3 daemon/hid_daemon.py
 
 
-As a systemd service:
+As a systemd service
 
 sudo cp systemd/hid-peripheral.service /etc/systemd/system/
 sudo cp systemd/env /etc/default/hid-peripheral
@@ -80,13 +80,13 @@ Entry point. Loads configs, builds services, polls evdev, updates HID reports, a
 Implements BlueZ GATT objects (HIDService, HIDCharacteristic, HIDDescriptor).
 - daemon/hid_reports.py
 Builds HID keyboard/mouse reports from evdev events using report_map.yaml.
-• daemon/evdev_tracker.py
+- daemon/evdev_tracker.py
 Tracks pressed keys, mouse buttons, and relative movement from /dev/input/eventX.
-• daemon/dbus_utils.py
+- daemon/dbus_utils.py
 Constants and helpers for BlueZ D‑Bus registration.
-• ui/status_client.py
+- ui/status_client.py
 Connects to the daemon’s D‑Bus API, fetches status JSON, sends control commands.
-• ui/console_ui.py
+- ui/console_ui.py
 Curses‑based dashboard. Navigates services/characteristics, shows live values, toggles notifications.
 
 
@@ -106,36 +106,67 @@ Curses‑based dashboard. Navigates services/characteristics, shows live values,
 
 ## 📊 Architecture Diagram
 
-```mermaid
-flowchart TD
-    subgraph Kernel["Linux Kernel"]
-        EVDEV["/dev/input/eventX"]
-    end
+```
++-------------------------------------------------------------------+
+|                           Linux kernel                            |
+|                    /dev/input/eventX devices                      |
++-------------------------------+-----------------------------------+
+                                |
+                                v
+                   +---------------------------+
+                   |     evdev_tracker.py      |
+                   |  - tracks keys/buttons    |
+                   |  - accumulates rel X/Y    |
+                   +-------------+-------------+
+                                 |
+                                 v
+                   +---------------------------+
+                   |      hid_reports.py       |
+                   |  - maps evdev -> HID      |
+                   |  - builds reports         |
+                   +-------------+-------------+
+                                 |
+                                 v
+                   +---------------------------+
+                   |    ble_peripheral.py      |
+                   |  - HIDService             |
+                   |  - HIDCharacteristic      |
+                   |  - HIDDescriptor (CCCD)   |
+                   +-------------+-------------+
+                                 |
+                                 v
+                   +---------------------------+
+                   |       hid_daemon.py       |
+                   |  - loads YAML configs     |
+                   |  - registers with BlueZ   |
+                   |  - exposes D-Bus API      |
+                   |    org.example.HIDPeripheral
+                   |  - periodic updates       |
+                   +-------------+-------------+
+                                 |
+                                 v
++-------------------+    system bus    +---------------------------+
+|    UI client      | <---------------- |          D-Bus           |
+|  console_ui.py    | ----------------> |  HIDPeripheralService    |
+|  status_client.py |    GetStatus()    |  GetStatus / Toggle      |
+|                   |    SetNotify()    |  SetNotify + signals     |
++-------------------+                   +---------------------------+
+                                 |
+                                 v
++-------------------------------------------------------------------+
+|                              BlueZ                                |
+|  org.bluez.GattManager1 / GattService1 / GattCharacteristic1      |
+|  - hosts GATT tree from daemon                                    |
+|  - handles CCCD writes, notifications                             |
++-------------------------------+-----------------------------------+
+                                |
+                                v
++-------------------------------------------------------------------+
+|                      Bluetooth host (PC/Phone)                     |
+|  - subscribes to HID report characteristics (notify)               |
+|  - receives keyboard/mouse input as HID reports                    |
++-------------------------------------------------------------------+
 
-    subgraph Daemon["Daemon (daemon/)"]
-        ET["evdev_tracker.py"]
-        HR["hid_reports.py"]
-        BP["ble_peripheral.py"]
-        HD["hid_daemon.py"]
-        DU["dbus_utils.py"]
-    end
-
-    subgraph BlueZ["BlueZ (system)"]
-        GM["GattManager1"]
-        GS["GattService1 / GattCharacteristic1"]
-    end
-
-    subgraph UI["UI Client (ui/)"]
-        SC["status_client.py"]
-        CU["console_ui.py"]
-    end
-
-    EVDEV --> ET --> HR --> BP --> HD
-    HD -->|register_app| GM
-    BP --> GS
-    HD -->|exposes| DU
-    HD -->|D-Bus API| SC --> CU
-    GS -->|notifications| Host["Bluetooth Host (PC/Phone)"]
 ```
 
 
@@ -143,12 +174,10 @@ flowchart TD
 
 🖥️ Typical Workflow
 
-• Daemon runs headless as a systemd service.
-• You SSH into the Pi and run ui/console_ui.py.
-• The UI shows live HID state (e.g., pressing A updates the keyboard report value).
-• You can drill into services/characteristics, toggle notifications, or stop/start the peripheral.
+- Daemon runs headless as a systemd service.
+- You SSH into the Pi and run ui/console_ui.py.
+- The UI shows live HID state (e.g., pressing A updates the keyboard report value).
+- You can drill into services/characteristics, toggle notifications, or stop/start the peripheral.
 
 
 ---
-
-That’s the raw Markdown text — ready to paste into GitHub as README.md. Would you like me to also append a “Updating the Project” section that documents the update script (full vs partial update) so it’s all in one place?
