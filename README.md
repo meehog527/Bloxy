@@ -140,6 +140,7 @@ flowchart TD
     HD -->|exposes| DU
     HD -->|D-Bus API| SC --> CU
     GS -->|notifications| Host["Bluetooth Host (PC/Phone)"]
+```
 
 
 ---
