@@ -67,7 +67,7 @@ class HIDPeripheralService(dbus.service.Object):
 
     @dbus.service.method(DAEMON_IFACE, out_signature='s')
     def GetStatus(self):
-        logger.debug("GetStatus called")
+        #logger.debug("GetStatus called")
         status = {
             'is_on': self.controller.is_on,
             'connected_devices': self.connected_devices,
@@ -180,11 +180,11 @@ def main():
             if keyboard_char:
                 kb_report = report_builder.build_keyboard_report(list(keyboard_dev.pressed_keys))
                 keyboard_char.update_value(kb_report)
-                logger.debug("Keyboard report updated: %s", kb_report)
+                #slogger.debug("Keyboard report updated: %s", kb_report)
             if mouse_char:
                 m_report = report_builder.build_mouse_report(mouse_dev.buttons, mouse_dev.rel_x, mouse_dev.rel_y)
                 mouse_char.update_value(m_report)
-                logger.debug("Mouse report updated: %s", m_report)
+                #logger.debug("Mouse report updated: %s", m_report)
                 mouse_dev.rel_x = 0
                 mouse_dev.rel_y = 0
             daemon.StatusUpdated(daemon.GetStatus())
