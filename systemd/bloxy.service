@@ -1,0 +1,15 @@
+[Unit]
+Description=HID Peripheral Daemon
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/hid-peripheral
+ExecStart=/usr/bin/env PYTHONPATH=%h/hid-peripheral:/usr/local/lib/python3.9/dist-packages \
+  /usr/bin/python3 %h/hid-peripheral/daemon/hid_daemon.py
+User=root
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
