@@ -9,42 +9,42 @@ It is split into two main components:
 
 ---
 
-🚀 Getting Started
+## 🚀 Getting Started
 
-Requirements
+### Requirements
 
-• Linux with BlueZ and D‑Bus
-• Python 3.9+
-• Root/sudo access (for BLE + evdev input devices)
+- Linux with BlueZ and D‑Bus
+- Python 3.9+
+- Root/sudo access (for BLE + evdev input devices)
 
 
-Installation
-
+### Installation
+```
 sudo apt update
 sudo apt install -y bluetooth bluez python3-dbus python3-gi python3-evdev python3-yaml python3-venv
+```
 
-
-Clone the repository:
+### Clone the repository:
 
 git clone https://github.com/meehog527/Bloxy.git
 cd Bloxy
 
 
-Create a virtual environment and install dependencies:
+### Create a virtual environment and install dependencies:
 
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
 
-Configuration
+### Configuration
 
 • Edit peripheral.yaml to define your GATT services/characteristics.
 • Edit report_map.yaml to map evdev key codes to HID usage IDs.
 • Update /etc/bluetooth/main.conf similar to bluez/main.conf.
 
 
-Running the Daemon
+### Running the Daemon
 
 Foreground run:
 
@@ -70,15 +70,15 @@ The curses UI will show live HID state, let you toggle the peripheral, and drill
 
 ---
 
-🧩 Architecture Overview
+## 🧩 Architecture Overview
 
-Module Responsibilities
+### Module Responsibilities
 
-• daemon/hid_daemon.py
+- daemon/hid_daemon.py
 Entry point. Loads configs, builds services, polls evdev, updates HID reports, and exposes the custom D‑Bus API.
-• daemon/ble_peripheral.py
+- daemon/ble_peripheral.py
 Implements BlueZ GATT objects (HIDService, HIDCharacteristic, HIDDescriptor).
-• daemon/hid_reports.py
+- daemon/hid_reports.py
 Builds HID keyboard/mouse reports from evdev events using report_map.yaml.
 • daemon/evdev_tracker.py
 Tracks pressed keys, mouse buttons, and relative movement from /dev/input/eventX.
