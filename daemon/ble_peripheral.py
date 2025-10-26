@@ -3,7 +3,7 @@ import dbus.service
 from gi.repository import GLib
 import yaml
 
-from .dbus_utils import DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE
+from dbus_utils import DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE
 
 class HIDDescriptor(dbus.service.Object):
     """

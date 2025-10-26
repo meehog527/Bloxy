@@ -5,10 +5,10 @@ import dbus.mainloop.glib
 import dbus.service
 from gi.repository import GLib
 
-from .ble_peripheral import HIDService, load_yaml_config
-from .hid_reports import HIDReportBuilder
-from .evdev_tracker import EvdevTracker
-from .dbus_utils import register_app, DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE
+from ble_peripheral import HIDService, load_yaml_config
+from hid_reports import HIDReportBuilder
+from evdev_tracker import EvdevTracker
+from dbus_utils import register_app, DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE
 
 class PeripheralController:
     """
