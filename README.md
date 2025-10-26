@@ -108,8 +108,9 @@ Curses‑based dashboard. Navigates services/characteristics, shows live values,
 
 ---
 
-📊 Mermaid Diagram
+## 📊 Architecture Diagram
 
+```mermaid
 flowchart TD
     subgraph Kernel["Linux Kernel"]
         EVDEV["/dev/input/eventX"]
