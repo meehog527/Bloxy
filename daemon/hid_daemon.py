@@ -1,3 +1,5 @@
+#hid_daemon.py
+
 import os
 import json
 import dbus
@@ -5,7 +7,7 @@ import dbus.mainloop.glib
 import dbus.service
 from gi.repository import GLib
 
-from ble_peripheral import HIDService, load_yaml_config
+from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
 from evdev_tracker import EvdevTracker
 from dbus_utils import register_app, DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE
@@ -105,8 +107,11 @@ def main():
     # Build services
     services = [HIDService(bus, i, svc_cfg) for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
 
+    # Create application object at /org/bluez/hid
+    app = HIDApplication(bus, services, path='/org/bluez/hid')
+
     # Controller
-    controller = PeripheralController(bus, services)
+    controller = PeripheralController(bus, services, app_path='/org/bluez/hid')
 
     # Evdev trackers
     kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
