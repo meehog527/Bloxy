@@ -25,46 +25,46 @@ sudo apt install -y bluetooth bluez python3-dbus python3-gi python3-evdev python
 ```
 
 ### Clone the repository:
-
+```
 git clone https://github.com/meehog527/Bloxy.git
 cd Bloxy
-
+```
 
 ### Create a virtual environment and install dependencies:
-
+```
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
+```
 
 ### Configuration
 
-• Edit peripheral.yaml to define your GATT services/characteristics.
-• Edit report_map.yaml to map evdev key codes to HID usage IDs.
-• Update /etc/bluetooth/main.conf similar to bluez/main.conf.
+- Edit peripheral.yaml to define your GATT services/characteristics.
+- Edit report_map.yaml to map evdev key codes to HID usage IDs.
+- Update /etc/bluetooth/main.conf similar to bluez/main.conf.
 
 
 ### Running the Daemon
 
 Foreground run
-
+```
 sudo -E env PYTHONPATH=. python3 daemon/hid_daemon.py
-
+```
 
 As a systemd service
-
+```
 sudo cp systemd/hid-peripheral.service /etc/systemd/system/
 sudo cp systemd/env /etc/default/hid-peripheral
 sudo systemctl daemon-reload
 sudo systemctl enable --now hid-peripheral
-
+```
 
 Running the UI
 
 SSH into the device and run:
-
+```
 python3 ui/console_ui.py
-
+```
 
 The curses UI will show live HID state, let you toggle the peripheral, and drill into services/characteristics.
 
