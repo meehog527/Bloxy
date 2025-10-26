@@ -113,7 +113,7 @@ class HIDPeripheralService(dbus.service.Object):
 
     @dbus.service.signal(DAEMON_IFACE, signature='s')
     def StatusUpdated(self, status_json):
-        logger.debug("StatusUpdated signal emitted")
+        #logger.debug("StatusUpdated signal emitted")
         pass
 
 
