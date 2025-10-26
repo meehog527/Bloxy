@@ -1,0 +1,5 @@
+# Example environment overrides
+KEYBOARD_DEV=/dev/input/event0
+MOUSE_DEV=/dev/input/event1
+PERIPHERAL_YAML=/root/hid-peripheral/peripheral.yaml
+REPORT_MAP_YAML=/root/hid-peripheral/report_map.yaml
