@@ -1,6 +1,6 @@
 import curses
 import time
-from ui.status_client import StatusClient
+from status_client import StatusClient
 
 class ConsoleUI:
     """
