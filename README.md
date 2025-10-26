@@ -1,8 +1,4 @@
-Here’s the raw Markdown text of the full README we built together — you can copy‑paste this directly into a README.md file in your GitHub repo:
-
----
-
-Bloxy HID Peripheral
+#Bloxy HID Peripheral
 
 This project implements a Bluetooth HID peripheral (keyboard + mouse) using BlueZ and D‑Bus on Linux.
 It is split into two main components:
