@@ -2,13 +2,24 @@ import curses
 import time
 from status_client import StatusClient
 
+
 class ConsoleUI:
     """
     Curses-based interactive dashboard to inspect and control the HID daemon.
     Navigation levels: root -> services -> characteristics -> char_detail
     """
+
     def __init__(self):
-        self.client = StatusClient()
+        try:
+            self.client = StatusClient()
+            self.service_available = True
+            self.error_msg = ""
+        except Exception as e:
+            # Could not connect to daemon
+            self.client = None
+            self.service_available = False
+            self.error_msg = str(e)
+
         self.level = "root"  # root, services, characteristics, char_detail
         self.selected_index = 0
         self.selected_service = None
@@ -19,63 +30,89 @@ class ConsoleUI:
 
     def _main(self, stdscr):
         curses.curs_set(0)
-        stdscr.nodelay(True)
+        stdscr.timeout(200)  # wait up to 200ms for input
 
         while True:
             stdscr.erase()
-            status = self.client.get_status()
 
+            # Try to fetch status if service is available
+            if self.service_available and self.client:
+                try:
+                    status = self.client.get_status()
+                except Exception as e:
+                    status = {}
+                    self.service_available = False
+                    self.error_msg = str(e)
+            else:
+                status = {}
+
+            # Header
             stdscr.addstr(0, 0, "=== HID Peripheral Monitor (Client) ===")
-            stdscr.addstr(1, 0, f"Peripheral: {'ON' if status.get('is_on') else 'OFF'}")
-            connected = status.get('connected_devices', [])
-            stdscr.addstr(2, 0, f"Connected devices: {', '.join(connected) or 'None'}")
+            if not self.service_available:
+                stdscr.addstr(1, 0, "Service not running", curses.A_BOLD)
+                stdscr.addstr(2, 0, f"(Error: {self.error_msg})")
+            else:
+                stdscr.addstr(1, 0, f"Peripheral: {'ON' if status.get('is_on') else 'OFF'}")
+                connected = status.get('connected_devices', [])
+                stdscr.addstr(2, 0, f"Connected devices: {', '.join(connected) or 'None'}")
 
+            # Draw current level
             if self.level == "root":
                 self._draw_root(stdscr)
-            elif self.level == "services":
+            elif self.level == "services" and self.service_available:
                 self._draw_services(stdscr, status)
-            elif self.level == "characteristics":
+            elif self.level == "characteristics" and self.service_available:
                 self._draw_characteristics(stdscr)
-            elif self.level == "char_detail":
+            elif self.level == "char_detail" and self.service_available:
                 self._draw_char_detail(stdscr)
 
-            stdscr.addstr(curses.LINES-1, 0,
-                          "Arrows: navigate | Enter: select/toggle | Backspace: back | q: quit")
+            # Footer
+            try:
+                stdscr.addstr(
+                    curses.LINES - 1,
+                    0,
+                    "Arrows: navigate | Enter: select/toggle | Backspace: back | q: quit",
+                )
+            except curses.error:
+                pass  # terminal too small
+
             stdscr.refresh()
 
+            # Handle input
             try:
                 key = stdscr.getch()
-                if key == ord('q'):
+                if key == ord("q"):
                     break
                 elif key == curses.KEY_DOWN:
                     self.selected_index += 1
                 elif key == curses.KEY_UP:
                     self.selected_index -= 1
                 elif key == 10:  # Enter
+                    if not self.service_available:
+                        continue  # disable actions if service is down
+
                     if self.level == "root":
                         if self.selected_index % 2 == 0:
-                            # Toggle peripheral
                             self.client.toggle()
                         else:
                             self.level = "services"
                             self.selected_index = 0
                     elif self.level == "services":
-                        services = status.get('services', [])
+                        services = status.get("services", [])
                         if services:
                             self.selected_service = services[self.selected_index % len(services)]
                             self.level = "characteristics"
                             self.selected_index = 0
                     elif self.level == "characteristics":
-                        chars = self.selected_service.get('characteristics', [])
+                        chars = self.selected_service.get("characteristics", [])
                         if chars:
                             self.selected_char = chars[self.selected_index % len(chars)]
                             self.level = "char_detail"
                     elif self.level == "char_detail":
-                        # Toggle notifications for this characteristic
-                        uuid = self.selected_char.get('uuid')
-                        enable = not self.selected_char.get('notifying', False)
+                        uuid = self.selected_char.get("uuid")
+                        enable = not self.selected_char.get("notifying", False)
                         self.client.set_notify(uuid, enable)
-                elif key == 127 or key == curses.KEY_BACKSPACE:
+                elif key in (8, 127, curses.KEY_BACKSPACE):
                     if self.level == "char_detail":
                         self.level = "characteristics"
                         self.selected_index = 0
@@ -88,31 +125,44 @@ class ConsoleUI:
             except Exception:
                 pass
 
-            time.sleep(0.2)
-
     def _draw_root(self, stdscr):
         options = ["Toggle Peripheral", "View Services"]
         for i, opt in enumerate(options):
             marker = ">" if i == self.selected_index % len(options) else " "
-            stdscr.addstr(4 + i, 0, f"{marker} {opt}")
+            if not self.service_available:
+                stdscr.addstr(4 + i, 0, f"{marker} {opt} (unavailable)")
+            else:
+                stdscr.addstr(4 + i, 0, f"{marker} {opt}")
 
     def _draw_services(self, stdscr, status):
-        services = status.get('services', [])
+        services = status.get("services", [])
+        if not services:
+            stdscr.addstr(4, 0, "No services available")
+            return
         for i, svc in enumerate(services):
-            marker = ">" if i == self.selected_index % max(1, len(services)) else " "
-            stdscr.addstr(4 + i, 0,
-                          f"{marker} Service {svc.get('uuid')} "
-                          f"({len(svc.get('characteristics', []))} chars)")
+            marker = ">" if i == self.selected_index % len(services) else " "
+            stdscr.addstr(
+                4 + i,
+                0,
+                f"{marker} Service {svc.get('uuid')} "
+                f"({len(svc.get('characteristics', []))} chars)",
+            )
 
     def _draw_characteristics(self, stdscr):
-        chars = self.selected_service.get('characteristics', [])
+        chars = self.selected_service.get("characteristics", [])
+        if not chars:
+            stdscr.addstr(4, 0, "No characteristics available")
+            return
         for i, ch in enumerate(chars):
-            marker = ">" if i == self.selected_index % max(1, len(chars)) else " "
-            val = ch.get('value', [])
-            notify = ch.get('notifying', False)
-            stdscr.addstr(4 + i, 0,
-                          f"{marker} Char {ch.get('uuid')} {ch.get('name')} "
-                          f"Val={val} Notifying={notify}")
+            marker = ">" if i == self.selected_index % len(chars) else " "
+            val = ch.get("value", [])
+            notify = ch.get("notifying", False)
+            stdscr.addstr(
+                4 + i,
+                0,
+                f"{marker} Char {ch.get('uuid')} {ch.get('name')} "
+                f"Val={val} Notifying={notify}",
+            )
 
     def _draw_char_detail(self, stdscr):
         ch = self.selected_char
@@ -123,9 +173,10 @@ class ConsoleUI:
         stdscr.addstr(8, 0, f"Notifying: {ch.get('notifying')} (Enter to toggle)")
         stdscr.addstr(9, 0, f"Flags: {ch.get('flags', [])}")
         row = 11
-        for desc in ch.get('descriptors', []):
+        for desc in ch.get("descriptors", []):
             stdscr.addstr(row, 2, f"Descriptor {desc.get('uuid')} Val={desc.get('value')}")
             row += 1
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     ConsoleUI().run()
