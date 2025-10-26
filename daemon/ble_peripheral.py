@@ -142,6 +142,39 @@ class HIDService(dbus.service.Object):
             return self.primary
         raise NotImplementedError(f'Unknown service property: {prop}')
 
+class HIDApplication(dbus.service.Object):
+    def __init__(self, bus, services, path='/org/bluez/hid'):
+        self.path = path
+        self.services = services
+        dbus.service.Object.__init__(self, bus, self.path)
+
+    @dbus.service.method("org.freedesktop.DBus.ObjectManager",
+                         out_signature="a{oa{sa{sv}}}")
+    def GetManagedObjects(self):
+        response = {}
+        for svc in self.services:
+            response[svc.path] = {
+                "org.bluez.GattService1": {
+                    "UUID": svc.uuid,
+                    "Primary": svc.primary,
+                }
+            }
+            for ch in svc.characteristics:
+                response[ch.path] = {
+                    "org.bluez.GattCharacteristic1": {
+                        "UUID": ch.uuid,
+                        "Flags": ch.flags,
+                    }
+                }
+                for desc in ch.descriptors:
+                    response[desc.path] = {
+                        "org.bluez.GattDescriptor1": {
+                            "UUID": desc.uuid,
+                            "Flags": desc.flags,
+                        }
+                    }
+        return response
+
 def load_yaml_config(path):
     with open(path, 'r') as f:
         return yaml.safe_load(f)
