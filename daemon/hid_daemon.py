@@ -187,7 +187,7 @@ def main():
             if mouse_char:
                 m_report = report_builder.build_mouse_report(mouse_dev.buttons, mouse_dev.rel_x, mouse_dev.rel_y)
                 mouse_char.update_value(m_report)
-                #logger.debug("Mouse report updated: %s", m_report)
+                logger.debug("Mouse report updated: %s", m_report)
                 mouse_dev.rel_x = 0
                 mouse_dev.rel_y = 0
             daemon.StatusUpdated(daemon.GetStatus())
