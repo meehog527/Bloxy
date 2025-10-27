@@ -53,13 +53,15 @@ class HIDReportBuilder:
         rel_x, rel_y: integer deltas (relative movement)
         Returns: 4-byte mouse report [buttons, x, y, wheel(0)]
         """
+        mouse_maps = self.maps.get('mouse', {})
+        
         report = [0x00, 0x00, 0x00, 0x00]
         if 'BTN_LEFT' in buttons:
-            report[0] |= 0x01
+            report[0] |= mouse_maps.get('BTN_LEFT')
         if 'BTN_RIGHT' in buttons:
-            report[0] |= 0x02
+            report[0] |= mouse_maps.get('BTN_RIGHT')
         if 'BTN_MIDDLE' in buttons:
-            report[0] |= 0x04
+            report[0] |= mouse_maps.get('BTN_MIDDLE')
 
         report[1] = (int(rel_x) + 256) % 256
         report[2] = (int(rel_y) + 256) % 256
