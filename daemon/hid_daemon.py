@@ -121,6 +121,9 @@ def main():
     logger.info("Starting HID daemon")
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
+    
+    name = dbus.service.BusName(DAEMON_BUS_NAME, bus)
+    logger.debug("D-Bus service name acquired: %s", DAEMON_BUS_NAME)
 
     # Load configs
     peripheral_yaml = os.environ.get('PERIPHERAL_YAML', 'peripheral.yaml')
