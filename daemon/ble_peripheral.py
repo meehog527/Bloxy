@@ -176,27 +176,28 @@ class HIDApplication(dbus.service.Object):
         for svc in self.services:
             # Service object
             response[svc.path] = {
-                "org.bluez.GattService1": {
-                    "UUID": svc.uuid,
-                    "Primary": dbus.Boolean(svc.primary),
+            "org.bluez.GattService1": {
+                "UUID": svc.uuid,
+                "Primary": dbus.Boolean(svc.primary),
+            }
+        }
+        for ch in svc.characteristics:
+            response[ch.path] = {
+                "org.bluez.GattCharacteristic1": {
+                    "UUID": ch.uuid,
+                    "Flags": dbus.Array(ch.flags, signature='s'),
+                    "Service": dbus.ObjectPath(svc.path),
                 }
             }
-            # Characteristics
-            for ch in svc.characteristics:
-                response[ch.path] = {
-                    "org.bluez.GattCharacteristic1": {
-                        "UUID": ch.uuid,
-                        "Flags": dbus.Array(ch.flags, signature='s'),
+            for desc in ch.descriptors:
+                response[desc.path] = {
+                    "org.bluez.GattDescriptor1": {
+                        "UUID": desc.uuid,
+                        "Flags": dbus.Array(desc.flags, signature='s'),
+                        "Characteristic": dbus.ObjectPath(ch.path),
                     }
                 }
-                # Descriptors
-                for desc in ch.descriptors:
-                    response[desc.path] = {
-                        "org.bluez.GattDescriptor1": {
-                            "UUID": desc.uuid,
-                            "Flags": dbus.Array(desc.flags, signature='s'),
-                        }
-                    }
+
 
         logger.debug("GetManagedObjects returning: %s", response)
         return response
