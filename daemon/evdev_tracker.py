@@ -27,8 +27,8 @@ class EvdevTracker:
         r, _, _ = select.select([self.device.fd], [], [], 0)
         if self.device.fd in r:
             for event in self.device.read():
-                logger.debug("Event from %s: type=%s code=%s value=%s",
-                             self.device_path, event.type, event.code, event.value)
+                #logger.debug("Event from %s: type=%s code=%s value=%s",
+                #             self.device_path, event.type, event.code, event.value)
                 
                 if event.type == ecodes.EV_KEY:
                     key_event = categorize(event)
