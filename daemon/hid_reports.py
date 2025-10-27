@@ -1,3 +1,5 @@
+#hid_reports.py
+
 import yaml
 
 class HIDReportBuilder:

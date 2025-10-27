@@ -163,40 +163,46 @@ class HIDApplication(dbus.service.Object):
         self.services = services
         dbus.service.Object.__init__(self, bus, self.path)
         logger.debug("HIDApplication initialized at %s with %d services",
-                     self.path, len(self.services))
+                    self.path, len(self.services))
 
     @dbus.service.method("org.freedesktop.DBus.ObjectManager",
-                         out_signature="a{oa{sa{sv}}}")
+                    out_signature="a{oa{sa{sv}}}")
     def GetManagedObjects(self):
         """
         Return a dict of all services, characteristics, and descriptors
-        in the format BlueZ expects.
+        in the format BlueZ expects, including optional properties.
         """
         response = {}
         for svc in self.services:
             # Service object
             response[svc.path] = {
-            "org.bluez.GattService1": {
-                "UUID": svc.uuid,
-                "Primary": dbus.Boolean(svc.primary),
-            }
-        }
-        for ch in svc.characteristics:
-            response[ch.path] = {
-                "org.bluez.GattCharacteristic1": {
-                    "UUID": ch.uuid,
-                    "Flags": dbus.Array(ch.flags, signature='s'),
-                    "Service": dbus.ObjectPath(svc.path),
+                "org.bluez.GattService1": {
+                    "UUID": svc.uuid,
+                    "Primary": dbus.Boolean(svc.primary),
+                    "Includes": dbus.Array(getattr(svc, "includes", []), signature='o'),
                 }
             }
-            for desc in ch.descriptors:
-                response[desc.path] = {
-                    "org.bluez.GattDescriptor1": {
-                        "UUID": desc.uuid,
-                        "Flags": dbus.Array(desc.flags, signature='s'),
-                        "Characteristic": dbus.ObjectPath(ch.path),
+            for ch in svc.characteristics:
+                # Characteristic object
+                response[ch.path] = {
+                    "org.bluez.GattCharacteristic1": {
+                        "UUID": ch.uuid,
+                        "Service": dbus.ObjectPath(svc.path),
+                        "Flags": dbus.Array(ch.flags, signature='s'),
+                        "Descriptors": dbus.Array(
+                            [desc.path for desc in getattr(ch, "descriptors", [])], signature='o'
+                        ),
                     }
                 }
+                for desc in getattr(ch, "descriptors", []):
+                    # Descriptor object
+                    response[desc.path] = {
+                        "org.bluez.GattDescriptor1": {
+                            "UUID": desc.uuid,
+                            "Characteristic": dbus.ObjectPath(ch.path),
+                            "Flags": dbus.Array(desc.flags, signature='s'),
+                        }
+                    }
         return response
 def load_yaml_config(path):
     with open(path, 'r') as f:

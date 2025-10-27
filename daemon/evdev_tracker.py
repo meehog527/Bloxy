@@ -1,3 +1,5 @@
+#evdev_tracker.py
+
 from evdev import InputDevice, categorize, ecodes
 from gi.repository import GLib
 import select
@@ -101,6 +103,8 @@ class HIDMouseService:
             # Notify host if subscribed
             if self.mouse_char.notifying:
                 self.mouse_char.send_notify(report)
+            else:
+                logger.debug("Host not subscribed")
 
         return True  # keep GLib timeout active
     
