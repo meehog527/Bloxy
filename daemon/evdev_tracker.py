@@ -81,7 +81,7 @@ class HIDMouseService:
         self.mouse_char = mouse_char  # your GATT characteristic object
 
         # Run periodic polling
-        GLib.timeout_add(20, self.poll_mouse)  # every 20ms (~50Hz)
+        GLib.timeout_add(20, self.poll)  # every 20ms (~50Hz)
 
     def poll(self):
         if self.tracker.poll():
