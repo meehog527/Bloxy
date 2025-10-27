@@ -2,10 +2,21 @@
 
 import dbus
 import dbus.service
+import logging
 from gi.repository import GLib
 import yaml
 
 from dbus_utils import DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE
+
+# -------------------------------------------------------------------
+# Logging configuration
+# -------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG,  # Change to INFO for less verbosity
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("hid_daemon")
+
 
 class HIDDescriptor(dbus.service.Object):
     """
@@ -143,38 +154,52 @@ class HIDService(dbus.service.Object):
         raise NotImplementedError(f'Unknown service property: {prop}')
 
 class HIDApplication(dbus.service.Object):
+    """
+    Implements org.freedesktop.DBus.ObjectManager for the HID GATT application.
+    This is what BlueZ introspects when you call RegisterApplication.
+    """
     def __init__(self, bus, services, path='/org/bluez/hid'):
         self.path = path
         self.services = services
         dbus.service.Object.__init__(self, bus, self.path)
+        logger.debug("HIDApplication initialized at %s with %d services",
+                     self.path, len(self.services))
 
     @dbus.service.method("org.freedesktop.DBus.ObjectManager",
                          out_signature="a{oa{sa{sv}}}")
     def GetManagedObjects(self):
+        """
+        Return a dict of all services, characteristics, and descriptors
+        in the format BlueZ expects.
+        """
         response = {}
         for svc in self.services:
+            # Service object
             response[svc.path] = {
                 "org.bluez.GattService1": {
                     "UUID": svc.uuid,
-                    "Primary": svc.primary,
+                    "Primary": dbus.Boolean(svc.primary),
                 }
             }
+            # Characteristics
             for ch in svc.characteristics:
                 response[ch.path] = {
                     "org.bluez.GattCharacteristic1": {
                         "UUID": ch.uuid,
-                        "Flags": ch.flags,
+                        "Flags": dbus.Array(ch.flags, signature='s'),
                     }
                 }
+                # Descriptors
                 for desc in ch.descriptors:
                     response[desc.path] = {
                         "org.bluez.GattDescriptor1": {
                             "UUID": desc.uuid,
-                            "Flags": desc.flags,
+                            "Flags": dbus.Array(desc.flags, signature='s'),
                         }
                     }
-        return response
 
+        logger.debug("GetManagedObjects returning: %s", response)
+        return response
 def load_yaml_config(path):
     with open(path, 'r') as f:
         return yaml.safe_load(f)
