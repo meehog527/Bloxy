@@ -197,9 +197,6 @@ class HIDApplication(dbus.service.Object):
                         "Characteristic": dbus.ObjectPath(ch.path),
                     }
                 }
-
-
-        logger.debug("GetManagedObjects returning: %s", response)
         return response
 def load_yaml_config(path):
     with open(path, 'r') as f:
