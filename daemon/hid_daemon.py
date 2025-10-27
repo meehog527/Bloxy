@@ -10,7 +10,7 @@ from gi.repository import GLib
 
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
-from evdev_tracker import EvdevTracker
+from evdev_tracker import EvdevTracker, HIDMouseService
 from dbus_utils import register_app, DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE
 
 # -------------------------------------------------------------------
@@ -165,6 +165,7 @@ def main():
     # Identify HID report characteristics
     keyboard_char = None
     mouse_char = None
+    mouse_svc = None
     for svc in services:
         for ch in svc.characteristics:
             name = (ch.name or '').lower()
@@ -173,23 +174,24 @@ def main():
                 logger.debug("Keyboard characteristic found: %s", ch.uuid)
             elif 'mouse' in name and 'report' in name:
                 mouse_char = ch
+                mouse_svc = HIDMouseService(mdev_path, ch)
                 logger.debug("Mouse characteristic found: %s", ch.uuid)
 
     # Periodic update loop
     def update_reports():
         try:
             keyboard_dev.poll()
-            mouse_dev.poll()
+            mouse_svc.poll()
             if keyboard_char:
                 kb_report = report_builder.build_keyboard_report(list(keyboard_dev.pressed_keys))
                 keyboard_char.update_value(kb_report)
                 #slogger.debug("Keyboard report updated: %s", kb_report)
-            if mouse_char:
-                m_report = report_builder.build_mouse_report(mouse_dev.buttons, mouse_dev.rel_x, mouse_dev.rel_y)
-                mouse_char.update_value(m_report)
-                logger.debug("Mouse report updated: %s", m_report)
-                mouse_dev.rel_x = 0
-                mouse_dev.rel_y = 0
+            #if mouse_char:
+            #    m_report = report_builder.build_mouse_report(mouse_dev.buttons, mouse_dev.rel_x, mouse_dev.rel_y)
+            #    mouse_char.update_value(m_report)
+            #    logger.debug("Mouse report updated: %s", m_report)
+            #    mouse_dev.rel_x = 0
+            #    mouse_dev.rel_y = 0
             daemon.StatusUpdated(daemon.GetStatus())
         except Exception as e:
             logger.exception("Error in update_reports: %s", e)
