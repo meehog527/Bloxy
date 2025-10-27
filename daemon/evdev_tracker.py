@@ -1,5 +1,12 @@
 from evdev import InputDevice, categorize, ecodes
 import select
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Change to INFO for less verbosity
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("hid_daemon")
 
 class EvdevTracker:
     """
@@ -20,6 +27,9 @@ class EvdevTracker:
         r, _, _ = select.select([self.device.fd], [], [], 0)
         if self.device.fd in r:
             for event in self.device.read():
+                logger.debug("Event from %s: type=%s code=%s value=%s",
+                             self.device_path, event.type, event.code, event.value)
+                
                 if event.type == ecodes.EV_KEY:
                     key_event = categorize(event)
                     keycode = key_event.keycode
