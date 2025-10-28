@@ -87,7 +87,7 @@ class HIDMouseService:
 
     def poll(self):
         if self.tracker.poll():
-            buttons, dx, dy = self.tracker.consume_report()
+            buttons, dx, dy = self.consume_report()
 
             # HID Input Report for mouse (Report ID 2)
             report = [
