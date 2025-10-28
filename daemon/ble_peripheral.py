@@ -45,8 +45,8 @@ class HIDDescriptor(GattObject):
         self.flags = config.get('flags', [])
         raw_val = config.get('value', [])
         self.value = [dbus.Byte(v) for v in raw_val]
-        path = f'{char.path}/desc{index}'
-        super().__init__(bus, path)
+        self.path = f'{char.path}/desc{index}'
+        super().__init__(bus, self.path)
 
     def get_property_map(self):
         return {
@@ -83,8 +83,8 @@ class HIDCharacteristic(GattObject):
         self.name = config.get('name', self.uuid)
         self.notifying = bool(config.get('notifying', False))
         self.descriptors = []
-        path = f'{service.path}/char{index}'
-        super().__init__(bus, path)
+        self.path = f'{service.path}/char{index}'
+        super().__init__(bus, self.path)
 
         for i, desc_cfg in enumerate(config.get('descriptors', [])):
             self.descriptors.append(HIDDescriptor(bus, i, self, desc_cfg))
