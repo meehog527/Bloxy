@@ -115,13 +115,13 @@ class HIDMouseService:
         """
         # Build button bitmask
         mask = 0
-        for btn in self.buttons:
+        for btn in self.tracker.buttons:
             if btn in BTN_MAP:
                 mask |= (1 << BTN_MAP[btn])
 
-        dx, dy = self.rel_x, self.rel_y
+        dx, dy = self.tracker.rel_x, self.tracker.rel_y
         # Reset deltas after consuming
-        self.rel_x = 0
-        self.rel_y = 0
+        self.tracker.rel_x = 0
+        self.tracker.rel_y = 0
 
         return mask, dx, dy
