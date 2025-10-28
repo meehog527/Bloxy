@@ -101,9 +101,7 @@ class HIDMouseService:
             self.mouse_char.value = report
 
             # Notify host if subscribed
-            if self.mouse_char.notifying:
-                self.mouse_char.send_notify(report)
-            else:
+            if not self.mouse_char.notifying:
                 logger.debug("Host not subscribed")
 
         return True  # keep GLib timeout active
