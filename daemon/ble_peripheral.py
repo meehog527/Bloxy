@@ -151,8 +151,8 @@ class HIDService(GattObject):
         self.primary = True
         self.characteristics = []
         self.includes = config.get('includes', [])
-        path = f'/org/bluez/hid/service{index}'
-        super().__init__(bus, path)
+        self.path = f'/org/bluez/hid/service{index}'
+        super().__init__(bus, self.path)
 
         for i, char_cfg in enumerate(config.get('characteristics', [])):
             self.characteristics.append(HIDCharacteristic(bus, i, self, char_cfg))
