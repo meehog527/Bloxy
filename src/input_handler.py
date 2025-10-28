@@ -74,7 +74,6 @@ def get_keyboard_characteristic(ble):
                 return char
     return None
 
-
 def get_mouse_characteristic(ble):
     for char in ble.characteristics:
         props = getattr(char, 'props', {})

@@ -1,4 +1,4 @@
-#ble_peripheral.py
+# ble_peripheral.py
 
 import dbus
 import dbus.service
@@ -12,36 +12,49 @@ from dbus_utils import DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GAT
 # Logging configuration
 # -------------------------------------------------------------------
 logging.basicConfig(
-    level=logging.DEBUG,  # Change to INFO for less verbosity
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("hid_daemon")
 
 
-class HIDDescriptor(dbus.service.Object):
-    """
-    Implements org.bluez.GattDescriptor1
-    """
+class GattObject(dbus.service.Object):
+    def __init__(self, bus, path):
+        super().__init__(bus, path)
+
+    @dbus.service.method(DBUS_PROP_IFACE, in_signature='ss', out_signature='v')
+    def Get(self, interface, prop):
+        props = self.get_property_map()
+        if prop in props:
+            return props[prop]
+        raise NotImplementedError(f'Unknown property: {prop}')
+
+    def get_property_map(self):
+        return {}
+
+    def get_managed_object(self):
+        return {self.path: {self.dbus_interface: self.get_property_map()}}
+
+
+class HIDDescriptor(GattObject):
+    dbus_interface = GATT_DESC_IFACE
+
     def __init__(self, bus, index, char, config):
         self.char = char
-        self.path = f'{char.path}/desc{index}'
         self.uuid = config['uuid']
         self.flags = config.get('flags', [])
         raw_val = config.get('value', [])
         self.value = [dbus.Byte(v) for v in raw_val]
-        dbus.service.Object.__init__(self, bus, self.path)
+        path = f'{char.path}/desc{index}'
+        super().__init__(bus, path)
 
-    @dbus.service.method(DBUS_PROP_IFACE, in_signature='ss', out_signature='v')
-    def Get(self, interface, prop):
-        if prop == 'UUID':
-            return self.uuid
-        elif prop == 'Characteristic':
-            return self.char.path
-        elif prop == 'Value':
-            return dbus.Array(self.value, signature='y')
-        elif prop == 'Flags':
-            return dbus.Array(self.flags, signature='s')
-        raise NotImplementedError(f'Unknown descriptor property: {prop}')
+    def get_property_map(self):
+        return {
+            'UUID': self.uuid,
+            'Characteristic': dbus.ObjectPath(self.char.path),
+            'Value': dbus.Array(self.value, signature='y'),
+            'Flags': dbus.Array(self.flags, signature='s'),
+        }
 
     @dbus.service.method(GATT_DESC_IFACE, in_signature='a{sv}', out_signature='ay')
     def ReadValue(self, options):
@@ -49,7 +62,6 @@ class HIDDescriptor(dbus.service.Object):
 
     @dbus.service.method(GATT_DESC_IFACE, in_signature='aya{sv}')
     def WriteValue(self, value, options):
-        # Handle CCCD (0x2902)
         if self.uuid.lower() == '00002902-0000-1000-8000-00805f9b34fb':
             self.value = value
             enabled = len(value) >= 1 and int(value[0]) == 0x01
@@ -58,13 +70,12 @@ class HIDDescriptor(dbus.service.Object):
         else:
             self.value = value
 
-class HIDCharacteristic(dbus.service.Object):
-    """
-    Implements org.bluez.GattCharacteristic1 for HID characteristics.
-    """
+
+class HIDCharacteristic(GattObject):
+    dbus_interface = GATT_CHRC_IFACE
+
     def __init__(self, bus, index, service, config):
         self.service = service
-        self.path = f'{service.path}/char{index}'
         self.uuid = config['uuid']
         self.flags = config.get('flags', [])
         raw_val = config.get('value', [])
@@ -72,18 +83,34 @@ class HIDCharacteristic(dbus.service.Object):
         self.name = config.get('name', self.uuid)
         self.notifying = bool(config.get('notifying', False))
         self.descriptors = []
-        dbus.service.Object.__init__(self, bus, self.path)
+        path = f'{service.path}/char{index}'
+        super().__init__(bus, path)
 
         for i, desc_cfg in enumerate(config.get('descriptors', [])):
             self.descriptors.append(HIDDescriptor(bus, i, self, desc_cfg))
+
+    def get_property_map(self):
+        return {
+            'UUID': self.uuid,
+            'Service': dbus.ObjectPath(self.service.path),
+            'Flags': dbus.Array(self.flags, signature='s'),
+            'Value': dbus.Array(self.value, signature='y'),
+            'Notifying': self.notifying,
+        }
+
+    def get_managed_object(self):
+        obj = super().get_managed_object()
+        obj[self.path][self.dbus_interface]['Descriptors'] = dbus.Array(
+            [d.path for d in self.descriptors], signature='o'
+        )
+        for desc in self.descriptors:
+            obj.update(desc.get_managed_object())
+        return obj
 
     def set_notifying(self, enabled: bool):
         self.notifying = enabled
 
     def update_value(self, new_value_bytes):
-        """
-        Update the characteristic value and emit PropertiesChanged if notifying.
-        """
         self.value = [dbus.Byte(v) for v in new_value_bytes]
         if self.notifying:
             try:
@@ -92,24 +119,8 @@ class HIDCharacteristic(dbus.service.Object):
                     {'Value': dbus.Array(self.value, signature='y')},
                     []
                 )
-            except Exception:
-                pass
-        # Debug print keeps daemon logs simple
-        # print(f'[{self.name}] updated: {list(new_value_bytes)}')
-
-    @dbus.service.method(DBUS_PROP_IFACE, in_signature='ss', out_signature='v')
-    def Get(self, interface, prop):
-        if prop == 'UUID':
-            return self.uuid
-        elif prop == 'Service':
-            return self.service.path
-        elif prop == 'Flags':
-            return dbus.Array(self.flags, signature='s')
-        elif prop == 'Value':
-            return dbus.Array(self.value, signature='y')
-        elif prop == 'Notifying':
-            return self.notifying
-        raise NotImplementedError(f'Unknown characteristic property: {prop}')
+            except Exception as e:
+                logger.warning(f"Failed to emit PropertiesChanged for {self.name}: {e}")
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='a{sv}', out_signature='ay')
     def ReadValue(self, options):
@@ -122,7 +133,7 @@ class HIDCharacteristic(dbus.service.Object):
     @dbus.service.signal('org.freedesktop.DBus.Properties', signature='sa{sv}as')
     def PropertiesChanged(self, interface, changed, invalidated):
         pass
-
+    
     @dbus.service.method(GATT_CHRC_IFACE)
     def StartNotify(self):
         self.notifying = True
@@ -131,79 +142,53 @@ class HIDCharacteristic(dbus.service.Object):
     def StopNotify(self):
         self.notifying = False
 
-class HIDService(dbus.service.Object):
-    """
-    Implements org.bluez.GattService1 for HID service.
-    """
+
+class HIDService(GattObject):
+    dbus_interface = GATT_SERVICE_IFACE
+
     def __init__(self, bus, index, config):
-        self.path = f'/org/bluez/hid/service{index}'
         self.uuid = config['uuid']
         self.primary = True
         self.characteristics = []
-        dbus.service.Object.__init__(self, bus, self.path)
+        self.includes = config.get('includes', [])
+        path = f'/org/bluez/hid/service{index}'
+        super().__init__(bus, path)
 
         for i, char_cfg in enumerate(config.get('characteristics', [])):
             self.characteristics.append(HIDCharacteristic(bus, i, self, char_cfg))
 
-    @dbus.service.method(DBUS_PROP_IFACE, in_signature='ss', out_signature='v')
-    def Get(self, interface, prop):
-        if prop == 'UUID':
-            return self.uuid
-        elif prop == 'Primary':
-            return self.primary
-        raise NotImplementedError(f'Unknown service property: {prop}')
+    def get_property_map(self):
+        return {
+            'UUID': self.uuid,
+            'Primary': dbus.Boolean(self.primary),
+            'Includes': dbus.Array(self.includes, signature='o'),
+        }
+
+    def get_managed_object(self):
+        obj = super().get_managed_object()
+        for char in self.characteristics:
+            obj.update(char.get_managed_object())
+        return obj
+
 
 class HIDApplication(dbus.service.Object):
     """
     Implements org.freedesktop.DBus.ObjectManager for the HID GATT application.
-    This is what BlueZ introspects when you call RegisterApplication.
     """
     def __init__(self, bus, services, path='/org/bluez/hid'):
         self.path = path
         self.services = services
-        dbus.service.Object.__init__(self, bus, self.path)
-        logger.debug("HIDApplication initialized at %s with %d services",
-                    self.path, len(self.services))
+        super().__init__(bus, self.path)
+        logger.debug("HIDApplication initialized at %s with %d services", self.path, len(self.services))
 
-    @dbus.service.method("org.freedesktop.DBus.ObjectManager",
-                    out_signature="a{oa{sa{sv}}}")
+    @dbus.service.method("org.freedesktop.DBus.ObjectManager", out_signature="a{oa{sa{sv}}}")
     def GetManagedObjects(self):
-        """
-        Return a dict of all services, characteristics, and descriptors
-        in the format BlueZ expects, including optional properties.
-        """
         response = {}
         for svc in self.services:
-            # Service object
-            response[svc.path] = {
-                "org.bluez.GattService1": {
-                    "UUID": svc.uuid,
-                    "Primary": dbus.Boolean(svc.primary),
-                    "Includes": dbus.Array(getattr(svc, "includes", []), signature='o'),
-                }
-            }
-            for ch in svc.characteristics:
-                # Characteristic object
-                response[ch.path] = {
-                    "org.bluez.GattCharacteristic1": {
-                        "UUID": ch.uuid,
-                        "Service": dbus.ObjectPath(svc.path),
-                        "Flags": dbus.Array(ch.flags, signature='s'),
-                        "Descriptors": dbus.Array(
-                            [desc.path for desc in getattr(ch, "descriptors", [])], signature='o'
-                        ),
-                    }
-                }
-                for desc in getattr(ch, "descriptors", []):
-                    # Descriptor object
-                    response[desc.path] = {
-                        "org.bluez.GattDescriptor1": {
-                            "UUID": desc.uuid,
-                            "Characteristic": dbus.ObjectPath(ch.path),
-                            "Flags": dbus.Array(desc.flags, signature='s'),
-                        }
-                    }
+            response.update(svc.get_managed_object())
         return response
+
+
 def load_yaml_config(path):
     with open(path, 'r') as f:
         return yaml.safe_load(f)
