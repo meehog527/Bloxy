@@ -104,7 +104,7 @@ class HIDMouseService:
             if not self.mouse_char.notifying:
                 logger.debug("Host not subscribed")
             else:
-                logger.debug("Sent mouse report: %s", report)
+                logger.debug(f"Mouse char ({self.mouse_char} updated): {report}")
 
         return True  # keep GLib timeout active
     
