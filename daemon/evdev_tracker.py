@@ -1,4 +1,4 @@
-#evdev_tracker.py
+# evdev_tracker.py
 
 from evdev import InputDevice, categorize, ecodes
 from gi.repository import GLib
@@ -15,14 +15,12 @@ BTN_MAP = {
     'BTN_LEFT': 0,
     'BTN_RIGHT': 1,
     'BTN_MIDDLE': 2,
-    # add more if needed
 }
 
-class EvdevTracker:
-    """
-    Tracks a single evdev input device. Accumulates pressed keys/buttons and relative movement.
-    """
+def to_signed_byte(val):
+    return (val + 256) % 256
 
+class EvdevTracker:
     def __init__(self, device_path):
         self.device_path = device_path
         self.device = InputDevice(device_path)
@@ -32,10 +30,6 @@ class EvdevTracker:
         self.rel_y = 0
 
     def poll(self):
-        """
-        Non-blocking poll to read events and update internal state.
-        Returns True if any new events were processed.
-        """
         updated = False
         try:
             r, _, _ = select.select([self.device.fd], [], [], 0)
@@ -66,62 +60,44 @@ class EvdevTracker:
                         updated = True
 
                     elif event.type == ecodes.EV_SYN:
-                        # End of batch
                         pass
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
         return updated
 
 
-
-# Assume you already have a D-Bus object for your HID Report characteristic
-# e.g. self.mouse_input_char with a .PropertiesChanged() or .SendNotify() method
-
 class HIDMouseService:
     def __init__(self, device_path, mouse_char):
         self.tracker = EvdevTracker(device_path)
-        self.mouse_char = mouse_char  # your GATT characteristic object
-
-        # Run periodic polling
-        GLib.timeout_add(20, self.poll)  # every 20ms (~50Hz)
+        self.mouse_char = mouse_char
+        GLib.timeout_add(20, self.poll)
 
     def poll(self):
         if self.tracker.poll():
             buttons, dx, dy = self.consume_report()
-
-            # HID Input Report for mouse (Report ID 2)
             report = [
-                0x02,          # Report ID (must match Report Map)
-                buttons & 0xFF,  # Button bitmask
-                dx & 0xFF,       # X delta (signed 8-bit)
-                dy & 0xFF        # Y delta (signed 8-bit)
+                0x02,                 # Report ID
+                buttons & 0xFF,       # Button bitmask
+                to_signed_byte(dx),   # X delta (signed 8-bit)
+                to_signed_byte(dy),   # Y delta (signed 8-bit)
             ]
+            # Emit PropertiesChanged so notification subscribers get the update
+            self.mouse_char.update_value(report)
 
-            # Update characteristic value
-            self.mouse_char.value = report
-
-            # Notify host if subscribed
             if not self.mouse_char.notifying:
                 logger.debug("Host not subscribed")
             else:
-                logger.debug(f"Mouse char ({self.mouse_char.name} updated): {report}")
+                logger.debug(f"Mouse char ({self.mouse_char.name}) updated: {report}")
 
-        return True  # keep GLib timeout active
-    
+        return True
+
     def consume_report(self):
-        """
-        Build a HID-style mouse report and reset deltas.
-        Returns (buttons_bitmask, dx, dy).
-        """
-        # Build button bitmask
         mask = 0
         for btn in self.tracker.buttons:
             if btn in BTN_MAP:
                 mask |= (1 << BTN_MAP[btn])
 
         dx, dy = self.tracker.rel_x, self.tracker.rel_y
-        # Reset deltas after consuming
         self.tracker.rel_x = 0
         self.tracker.rel_y = 0
-
         return mask, dx, dy
