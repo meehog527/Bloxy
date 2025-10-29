@@ -151,10 +151,12 @@ peripheral:
           notifying: false
           flags: [write-without-response]
           descriptors: []
+        # ---------------- Keyboard Input Report (Report ID 1) ----------------
         - name: HID Report - Input (Keyboard)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
           value:
+            - 0x01  # Report ID 1
             - 0x00  # Modifier keys
             - 0x00  # Reserved
             - 0x00  # Keycode 1
@@ -176,10 +178,13 @@ peripheral:
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+
+        # ---------------- Mouse Input Report (Report ID 2) ----------------
         - name: HID Report - Input (Mouse)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)
           value:
+            - 0x02  # Report ID 2
             - 0x00  # Buttons
             - 0x00  # X delta
             - 0x00  # Y delta
@@ -192,44 +197,6 @@ peripheral:
                 - 0x02  # Report ID 2
                 - 0x01  # Input Report
               flags: [read]
-            - name: Client Characteristic Configuration Descriptor
-              uuid: 00002902-0000-1000-8000-00805f9b34fb
-              value: [0x00, 0x00]
-              flags: [read, write]
-        - name: HID Report - Output (Keyboard LEDs)
-          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Output (Keyboard LEDs)
-          value: [0x00]
-          flags: [read, write]
-          descriptors:
-            - name: Report Reference Descriptor
-              uuid: 00002908-0000-1000-8000-00805f9b34fb
-              value: [0x01, 0x02]   # Report ID 1, Output
-        - name: Boot Keyboard Input Report
-          uuid: 00002a22-0000-1000-8000-00805f9b34fb
-          description: Boot Keyboard Input Report
-          value: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
-          notifying: true
-          flags: [read, notify]
-          descriptors:
-            - name: Client Characteristic Configuration Descriptor
-              uuid: 00002902-0000-1000-8000-00805f9b34fb
-              value: [0x00, 0x00]
-              flags: [read, write]
-        - name: Boot Keyboard Output Report
-          uuid: 00002a32-0000-1000-8000-00805f9b34fb
-          description: Boot Keyboard Output Report
-          value: [0x00]
-          notifying: false
-          flags: [read, write, write-without-response]
-          descriptors: []
-        - name: Boot Mouse Input Report
-          description: Boot Mouse Input Report
-          uuid: 00002a33-0000-1000-8000-00805f9b34fb
-          value: [0x00,0x00,0x00]
-          notifying: true
-          flags: [read, notify]
-          descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
