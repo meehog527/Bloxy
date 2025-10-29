@@ -24,14 +24,64 @@ peripheral:
           descriptors: []
         - name: HID Report Map
           uuid: 00002a4b-0000-1000-8000-00805f9b34fb
-          description:  HID Report Map characteristic (defines HID structure)
-          value:     
+          description: HID Report Map characteristic (defines HID structure)
+          value:
+            # ---------------- Keyboard (Report ID 1) ----------------
+            - 0x05  # Usage Page (Generic Desktop)
+            - 0x01
+            - 0x09  # Usage (Keyboard)
+            - 0x06
+            - 0xA1  # Collection (Application)
+            - 0x01
+            - 0x85  #   Report ID
+            - 0x01  #   Report ID = 1 (Keyboard)
+            - 0x05  #   Usage Page (Key Codes)
+            - 0x07
+            - 0x19  #   Usage Minimum (0)
+            - 0x00
+            - 0x29  #   Usage Maximum (101)
+            - 0x65
+            - 0x15  #   Logical Minimum (0)
+            - 0x00
+            - 0x25  #   Logical Maximum (1)
+            - 0x01
+            - 0x75  #   Report Size (1)
+            - 0x01
+            - 0x95  #   Report Count (8) -> 8 modifier keys
+            - 0x08
+            - 0x81  #   Input (Data,Var,Abs)
+            - 0x95  #   Report Count (1) -> reserved
+            - 0x01
+            - 0x75  #   Report Size (8)
+            - 0x08
+            - 0x81  #   Input (Const,Array,Abs)
+            - 0x95  #   Report Count (6) -> 6 keycodes
+            - 0x06
+            - 0x75  #   Report Size (8)
+            - 0x08
+            - 0x15  #   Logical Minimum (0)
+            - 0x00
+            - 0x25  #   Logical Maximum (101)
+            - 0x65
+            - 0x05  #   Usage Page (Key Codes)
+            - 0x07
+            - 0x19  #   Usage Minimum (0)
+            - 0x00
+            - 0x29  #   Usage Maximum (101)
+            - 0x65
+            - 0x81  #   Input (Data,Array)
+            - 0x00
+            - 0xC0  # End Collection (Keyboard)
+
+            # ---------------- Mouse (Report ID 2) ----------------
             - 0x05  # Usage Page (Generic Desktop)
             - 0x01
             - 0x09  # Usage (Mouse)
             - 0x02
             - 0xA1  # Collection (Application)
             - 0x01
+            - 0x85  #   Report ID
+            - 0x02  #   Report ID = 2 (Mouse)
             - 0x09  #   Usage (Pointer)
             - 0x01
             - 0xA1  #   Collection (Physical)
@@ -74,15 +124,14 @@ peripheral:
             - 0x81
             - 0x06  #     Input (Data,Var,Rel)
             - 0xC0  #   End Collection
-            - 0xC0  # End Collection
-
+            - 0xC0  # End Collection (Mouse)
           notifying: false
           flags: [read]
           descriptors:
             - name: Battery Service External Report Reference Descriptor
               uuid: 00002907-0000-1000-8000-00805f9b34fb
               description: External Report Reference Descriptor linking to Battery Service
-              value: 
+              value:
                 - 0x0F # UUID 0x180F (Battery Service)
                 - 0x18
               flags: [read]
