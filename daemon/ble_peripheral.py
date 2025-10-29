@@ -136,6 +136,7 @@ class HIDCharacteristic(GattObject):
 
     def update_value(self, new_value_bytes):
         self.value = [dbus.Byte(int(v) & 0xFF) for v in new_value_bytes]
+        print(self.value)
         try:
             self.PropertiesChanged(
                 self.dbus_interface,
