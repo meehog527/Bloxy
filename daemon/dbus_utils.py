@@ -172,7 +172,7 @@ class PeripheralController:
         ad_manager.RegisterAdvertisement(
             self.advertisement.get_path(),
             {},
-            reply_handler=lambda: logger.info("✅ Advertising registered"),
+            reply_handler=lambda: logger.info("✅ Advertising registered: %s", self.advertisement.services_uuids),
             error_handler=lambda e: logger.error("❌ Failed to register advertisement: %s", e),
         )
 
