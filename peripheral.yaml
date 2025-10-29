@@ -209,6 +209,7 @@ peripheral:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
               value: [0x01, 0x02]   # Report ID 1, Output
+              flags: [read]
     - name: Battery Service
       uuid: 0000180f-0000-1000-8000-00805f9b34fb
       description: Battery Service
