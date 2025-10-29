@@ -106,8 +106,8 @@ def main():
     report_builder = HIDReportBuilder(report_yaml)
 
     services = [HIDService(bus, i, svc_cfg) for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
-    app = HIDApplication(bus, services, path='DAEMON_OBJ_PATH')
-    controller = PeripheralController(bus, services, app_path='DAEMON_OBJ_PATH')
+    app = HIDApplication(bus, services, path=DAEMON_OBJ_PATH)
+    controller = PeripheralController(bus, services, app_path=DAEMON_OBJ_PATH)
 
     # Defer controller.start() until the main loop is active
     def init_controller():
