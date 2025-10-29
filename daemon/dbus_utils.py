@@ -16,6 +16,10 @@ GATT_DESC_IFACE = 'org.bluez.GattDescriptor1'
 
 AGENT_PATH = "/org/bluez/hid_agent"
 
+DAEMON_BUS_NAME = 'org.example.HIDPeripheral'
+DAEMON_OBJ_PATH = '/org/example/HIDPeripheral'
+DAEMON_IFACE = 'org.example.HIDPeripheral'
+
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("PeripheralController")
 
