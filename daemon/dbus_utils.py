@@ -124,9 +124,8 @@ class PeripheralController:
             logger.debug("GattManager1 interface found on adapter.")
         except dbus.DBusException as e:
             logger.error("Could not get GattManager1 on adapter: %s", e)
-            return
+            return False
 
-        # ✅ Just register the application — no self‑introspection
         try:
             gatt_manager.RegisterApplication(
                 self.app_path,
@@ -135,8 +134,11 @@ class PeripheralController:
                 error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s", e),
             )
             logger.debug("RegisterApplication call sent, waiting for reply...")
+            # ✅ Treat sending the async call as success
+            return True
         except dbus.DBusException as e:
             logger.error("Error calling RegisterApplication: %s", e)
+            return False
     def enable_advertising(self):
         try:
             process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -169,19 +171,28 @@ class PeripheralController:
 
     def start(self):
         logger.info("🚀 Starting peripheral controller...")
-        success = (
-            self.power_on_adapter() and
-            self.set_discoverable_pairable() and
-            self.register_agent() and
-            self.register_gatt_application() and
-            self.enable_advertising()
-        )
-        self.is_on = success
-        if success:
-            logger.info("✅ Peripheral started.")
-        else:
+
+        # Power on adapter
+        if not self.power_on_adapter():
+            logger.error("❌ Could not power on adapter.")
+            return False
+
+        # Make adapter discoverable/pairable
+        if not self.make_adapter_discoverable():
+            logger.error("❌ Could not make adapter discoverable.")
+            return False
+
+        # Register agent
+        if not self.register_agent():
+            logger.error("❌ Could not register agent.")
+            return False
+
+        # Register GATT application
+        if not self.register_gatt_application():
             logger.error("❌ Peripheral failed to start.")
-        return success
+            return False
+
+
 
     def stop(self):
         result = self.power_off_adapter()
