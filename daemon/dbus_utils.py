@@ -192,6 +192,8 @@ class PeripheralController:
             logger.error("❌ Peripheral failed to start.")
             return False
         
+        self.list_connected_devices()
+        
         return True
 
     def stop(self):
@@ -202,3 +204,10 @@ class PeripheralController:
 
     def get_status(self):
         return {'is_on': self.is_on}
+    
+    def list_connected_devices():
+        bus = dbus.SystemBus()
+        manager = dbus.Interface(
+            bus.get_object("org.bluez", "/"),
+            "org.freedesktop.DBus.ObjectManager"
+    )
