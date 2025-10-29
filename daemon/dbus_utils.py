@@ -117,7 +117,7 @@ class PeripheralController:
                 self.bus.get_object(BLUEZ_SERVICE_NAME, "/org/bluez"),
                 "org.bluez.AgentManager1"
             )
-            manager.RegisterAgent(AGENT_PATH, "KeyboardDisplay")
+            manager.RegisterAgent(AGENT_PATH, "DisplayYesNo")
             manager.RequestDefaultAgent(AGENT_PATH)
             logger.info("✅ Agent registered and set as default.")
             return True
