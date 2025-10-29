@@ -384,19 +384,3 @@ peripheral:
           notifying: false
           flags: [read]
           descriptors: []
-    - name: GAP Service
-      uuid: 00001800-0000-1000-8000-00805f9b34fb
-      type: primary
-      characteristics:
-        - name: Device Name
-          uuid: 00002a00-0000-1000-8000-00805f9b34fb
-          value: [0x42,0x6C,0x6F,0x78,0x79]   # "Bloxy"
-          notifying: false
-          descriptors: []
-          flags: [read]
-        - name: Appearance
-          uuid: 00002a01-0000-1000-8000-00805f9b34fb
-          notifying: false
-          value: [0xC3, 0x03]   # 0x03C3 = Mouse/Keyboard combo
-          flags: [read]
-          descriptors: []
