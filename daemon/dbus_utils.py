@@ -54,6 +54,14 @@ class Agent(dbus.service.Object):
     def Cancel(self):
         logger.info("Cancel called")
 
+    # --- Added for KeyboardDisplay capability ---
+    @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
+    def DisplayPinCode(self, device, pincode):
+        """
+        Called when the agent needs to display a PIN code to the user.
+        Required for KeyboardDisplay capability.
+        """
+        logger.info(f"DisplayPinCode: {device} pincode={pincode}")
 
 class PeripheralController:
     def __init__(self, bus, services, config, app_path=HID_APP_PATH):
