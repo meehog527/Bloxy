@@ -108,7 +108,7 @@ def main():
     services = [HIDService(bus, i, svc_cfg) for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
     
     app = HIDApplication(bus, services, path=DAEMON_OBJ_PATH)
-    print(app.GetManagedObjects())  # Log managed objects for debugging
+
     controller = PeripheralController(bus, services, app_path=DAEMON_OBJ_PATH)
 
     # Defer controller.start() until the main loop is active
