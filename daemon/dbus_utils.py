@@ -205,7 +205,7 @@ class PeripheralController:
     def get_status(self):
         return {'is_on': self.is_on}
     
-    def list_connected_devices():
+    def list_connected_devices(self):
         bus = dbus.SystemBus()
         manager = dbus.Interface(
             bus.get_object("org.bluez", "/"),
