@@ -75,13 +75,12 @@ class HIDMouseService:
     def poll(self):
         if self.tracker.poll():
             buttons, dx, dy = self.consume_report()
-
             report = [
-                buttons & 0xFF,
-                to_signed_byte(dx),
-                to_signed_byte(dy),
+                0x02,                 # Report ID
+                buttons & 0xFF,       # Button bitmask
+                to_signed_byte(dx),   # X delta (signed 8-bit)
+                to_signed_byte(dy),   # Y delta (signed 8-bit)
             ]
-
             # Emit PropertiesChanged so notification subscribers get the update
             self.mouse_char.update_value(report)
 
