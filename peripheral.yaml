@@ -151,7 +151,6 @@ peripheral:
           notifying: false
           flags: [write-without-response]
           descriptors: []
-        # ---------------- Keyboard Input Report (Report ID 1) ----------------
         - name: HID Report - Input (Keyboard)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
@@ -177,8 +176,6 @@ peripheral:
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
-
-        # ---------------- Mouse Input Report (Report ID 2) ----------------
         - name: HID Report - Input (Mouse)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)

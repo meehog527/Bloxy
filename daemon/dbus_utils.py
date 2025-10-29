@@ -144,7 +144,7 @@ class PeripheralController:
                 self.app_path,
                 {},
                 reply_handler=lambda: logger.info("✅ RegisterApplication succeeded (async reply)."),
-                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s", e),
+                error_handler=self.on_register_error,
             )
             logger.debug("RegisterApplication call sent, waiting for reply...")
             # ✅ Treat sending the async call as success
@@ -152,6 +152,12 @@ class PeripheralController:
         except dbus.DBusException as e:
             logger.error("Error calling RegisterApplication: %s", e)
             return False
+        
+    def on_register_error(e):
+        logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)
+        import traceback
+        logger.error("Traceback:\n%s", traceback.format_exc())
+
     
     def enable_advertising(self):
         try:
