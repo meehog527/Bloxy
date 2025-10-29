@@ -14,7 +14,6 @@ from hid_reports import HIDReportBuilder
 from evdev_tracker import EvdevTracker, HIDMouseService
 from dbus_utils import DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE, PeripheralController
 
-# Logging setup
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("hid_daemon")
 
@@ -105,19 +104,19 @@ def main():
     app = HIDApplication(bus, services, path='/org/bluez/hid')
     controller = PeripheralController(bus, services, app_path='/org/bluez/hid')
 
-    # Defer controller.start() until after the main loop is running
+    # Defer controller.start() until the main loop is active
     def init_controller():
         if not controller.start():
             logger.error("Peripheral controller failed to start, exiting.")
             sys.exit(1)
 
-        # Validate input devices
         kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
         mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
 
         if not validate_input_device(kdev_path, "keyboard"):
             logger.error("Keyboard device not valid, exiting.")
             sys.exit(1)
+
         if not validate_input_device(mdev_path, "mouse"):
             logger.error("Mouse device not valid, exiting.")
             sys.exit(1)
@@ -165,6 +164,7 @@ def main():
     GLib.idle_add(init_controller)
 
     GLib.MainLoop().run()
+
 
 if __name__ == '__main__':
     main()
