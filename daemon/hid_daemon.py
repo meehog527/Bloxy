@@ -109,7 +109,7 @@ def main():
     
     app = HIDApplication(bus, services, path=HID_APP_PATH)
 
-    controller = PeripheralController(bus, services, app_path=HID_APP_PATH)
+    controller = PeripheralController(bus, services, cfg, app_path=HID_APP_PATH)
 
 
     # Defer controller.start() until the main loop is active

@@ -56,7 +56,7 @@ class Agent(dbus.service.Object):
 
 
 class PeripheralController:
-    def __init__(self, bus, services, app_path=HID_APP_PATH):
+    def __init__(self, bus, services, config, app_path=HID_APP_PATH):
         self.bus = bus
         self.manager = dbus.Interface(
             self.bus.get_object("org.bluez", "/"),
@@ -166,7 +166,7 @@ class PeripheralController:
         adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, adapter_path)
         ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
 
-        self.advertisement = Advertisement(self.bus, 0)
+        self.advertisement = Advertisement(self.bus, 0, self.config)
         ad_manager.RegisterAdvertisement(
             self.advertisement.get_path(),
             {},
@@ -247,12 +247,12 @@ import dbus.service
 class Advertisement(dbus.service.Object):
     PATH_BASE = "/org/example/advertisement"
 
-    def __init__(self, bus, index, advertising_type="peripheral"):
+    def __init__(self, bus, index, config, advertising_type="peripheral"):
         self.path = self.PATH_BASE + str(index)
         self.bus = bus
         self.ad_type = advertising_type
-        self.service_uuids = ["1812"]  # HID Service UUID
-        self.local_name = "bloxy"
+        self.service_uuids = [svc["uuid"] for svc in config["peripheral"]["services"]]  # HID Service UUID
+        self.local_name = config["peripheral"].get("localName", "HID Peripheral")
         self.manufacturer_data = {}
         self.solicit_uuids = None
         self.service_data = {}
