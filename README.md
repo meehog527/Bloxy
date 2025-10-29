@@ -140,7 +140,7 @@ Curses‑based dashboard. Navigates services/characteristics, shows live values,
                    |  - loads YAML configs     |
                    |  - registers with BlueZ   |
                    |  - exposes D-Bus API      |
-                   |    org.example.HIDPeripheral
+                   |    DAEMON_BUS_NAME
                    |  - periodic updates       |
                    +-------------+-------------+
                                  |

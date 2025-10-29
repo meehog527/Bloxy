@@ -6,7 +6,10 @@ import logging
 from gi.repository import GLib
 import yaml
 
-from dbus_utils import DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE
+from constants import (
+    DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH
+)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -167,7 +170,7 @@ class HIDCharacteristic(GattObject):
     def StopNotify(self):
         self.set_notifying(False)
 
-    @dbus.service.signal('org.freedesktop.DBus.Properties', signature='sa{sv}as')
+    @dbus.service.signal(DBUS_PROP_IFACE, signature='sa{sv}as')
     def PropertiesChanged(self, interface, changed, invalidated):
         pass
 
@@ -181,7 +184,7 @@ class HIDService(GattObject):
         self.characteristics = []
         includes_cfg = config.get('includes', [])
         self.includes = [dbus.ObjectPath(p) for p in includes_cfg] if includes_cfg else []
-        self.path = f'/org/example/HIDPeripheral/service{index}'
+        self.path = f'{DAEMON_OBJ_PATH}/service{index}'
         super().__init__(bus, self.path)
 
         for i, char_cfg in enumerate(config.get('characteristics', [])):
@@ -202,7 +205,7 @@ class HIDService(GattObject):
 
 
 class HIDApplication(dbus.service.Object):
-    def __init__(self, bus, services, path='/org/example/HIDPeripheral'):
+    def __init__(self, bus, services, path=DAEMON_OBJ_PATH):
         self.path = path
         self.services = services
         super().__init__(bus, self.path)

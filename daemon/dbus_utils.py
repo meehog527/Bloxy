@@ -6,19 +6,13 @@ import subprocess
 import logging
 import time
 
-BLUEZ_SERVICE_NAME = 'org.bluez'
-ADAPTER_PATH = '/org/bluez/hci0'
-GATT_MANAGER_IFACE = 'org.bluez.GattManager1'
-DBUS_PROP_IFACE = 'org.freedesktop.DBus.Properties'
-GATT_SERVICE_IFACE = 'org.bluez.GattService1'
-GATT_CHRC_IFACE = 'org.bluez.GattCharacteristic1'
-GATT_DESC_IFACE = 'org.bluez.GattDescriptor1'
-
-AGENT_PATH = "/org/example/hid_agent"
-
-DAEMON_BUS_NAME = 'org.example.HIDPeripheral'
-DAEMON_OBJ_PATH = '/org/example/HIDPeripheral'
-DAEMON_IFACE = 'org.example.HIDPeripheral'
+from constants import (
+    BLUEZ_SERVICE_NAME,
+    ADAPTER_PATH,
+    GATT_MANAGER_IFACE,
+    DBUS_PROP_IFACE,
+    AGENT_PATH,
+)
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("PeripheralController")
@@ -161,7 +155,7 @@ class PeripheralController:
 
     def trust_device(self, mac_address):
         try:
-            device_path = f"/org/bluez/hci0/dev_{mac_address.replace(':', '_')}"
+            device_path = f"/{ADAPTER_PATH}/dev_{mac_address.replace(':', '_')}"
             device = self.bus.get_object(BLUEZ_SERVICE_NAME, device_path)
             props = dbus.Interface(device, DBUS_PROP_IFACE)
             props.Set("org.bluez.Device1", "Trusted", dbus.Boolean(True))

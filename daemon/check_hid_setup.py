@@ -49,12 +49,12 @@ def check_gatt_registration():
         managed_objects = bluez.GetManagedObjects()
         found = False
         for path, interfaces in managed_objects.items():
-            if "org.bluez.GattService1" in interfaces:
+            if "GATT_SERVICE_IFACE" in interfaces:
                 logging.info(f"✅ GATT Service found at {path}")
                 found = True
-            if "org.bluez.GattCharacteristic1" in interfaces:
+            if "GATT_CHRC_IFACE" in interfaces:
                 logging.info(f"  ➤ Characteristic at {path}")
-            if "org.bluez.GattDescriptor1" in interfaces:
+            if "GATT_DESC_IFACE" in interfaces:
                 logging.info(f"    ➤ Descriptor at {path}")
         if not found:
             logging.warning("❌ No GATT services found.")

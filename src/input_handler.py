@@ -67,9 +67,9 @@ def make_mouse_report():
 def get_keyboard_characteristic(ble):
     for char in ble.characteristics:
         props = getattr(char, 'props', {})
-        uuid = props.get('org.bluez.GattCharacteristic1', {}).get('UUID')
+        uuid = props.get('GATT_CHRC_IFACE', {}).get('UUID')
         if uuid == UUID_REPORT:  # UUID_REPORT
-            value = props.get('org.bluez.GattCharacteristic1', {}).get('Value', [])
+            value = props.get('GATT_CHRC_IFACE', {}).get('Value', [])
             if value and value[0] == 0x01:  # Report ID 1
                 return char
     return None
@@ -77,8 +77,8 @@ def get_keyboard_characteristic(ble):
 def get_mouse_characteristic(ble):
     for char in ble.characteristics:
         props = getattr(char, 'props', {})
-        uuid = props.get('org.bluez.GattCharacteristic1', {}).get('UUID')
-        value = props.get('org.bluez.GattCharacteristic1', {}).get('Value', [])
+        uuid = props.get('GATT_CHRC_IFACE', {}).get('UUID')
+        value = props.get('GATT_CHRC_IFACE', {}).get('Value', [])
         if uuid == UUID_REPORT and value and value[0] == 0x02:  # Report ID 2
             return char
     return None

@@ -2,9 +2,9 @@ import json
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 
-DAEMON_BUS_NAME = 'org.example.HIDPeripheral'
-DAEMON_OBJ_PATH = '/org/example/HIDPeripheral'
-DAEMON_IFACE = 'org.example.HIDPeripheral'
+DAEMON_BUS_NAME = 'DAEMON_BUS_NAME'
+DAEMON_OBJ_PATH = 'DAEMON_OBJ_PATH'
+DAEMON_IFACE = 'DAEMON_BUS_NAME'
 
 
 class StatusClient:
