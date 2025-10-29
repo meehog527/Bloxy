@@ -196,6 +196,11 @@ class PeripheralController:
             logger.error("❌ Peripheral failed to start.")
             return False
         
+        connected = self.list_connected_devices()
+        for c in connected:
+            print(c[0])
+            self.trust_device(c[0])
+            
         logger.debug(f"Connected devices: {self.list_connected_devices()}")
         
         return True
