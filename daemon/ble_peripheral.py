@@ -218,6 +218,8 @@ class HIDApplication(dbus.service.Object):
         for svc in self.services:
             # Each get_managed_object returns a dict keyed by dbus.ObjectPath
             response.update(svc.get_managed_object())
+            
+        logger.debug("GetManagedObjects called, returning %s", response)
         return response
 
 
