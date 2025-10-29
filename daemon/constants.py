@@ -19,7 +19,9 @@ AGENT_PATH         = "/org/example/hid_agent"
 # Your daemon’s own bus name, object path, and interface
 DAEMON_BUS_NAME    = "org.example.HIDPeripheral"
 DAEMON_IFACE       = "org.example.HIDPeripheral"
-DAEMON_OBJ_PATH    = "/org/example/HIDPeripheral"
+# Daemon control object path (separate from app root!)
+DAEMON_OBJ_PATH    = "/org/example/HIDPeripheral/daemon"
+
 
 
 # Application root path for your HID GATT application
