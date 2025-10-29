@@ -191,8 +191,8 @@ class PeripheralController:
         if not self.register_gatt_application():
             logger.error("❌ Peripheral failed to start.")
             return False
-
-
+        
+        return True
 
     def stop(self):
         result = self.power_off_adapter()
