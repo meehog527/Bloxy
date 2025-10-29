@@ -67,6 +67,7 @@ class PeripheralController:
         self.adapter_path = ADAPTER_PATH
         self.agent = Agent(bus)
         self.is_on = False
+        self.config = config
 
     def power_on_adapter(self):
         try:
@@ -143,6 +144,7 @@ class PeripheralController:
         except dbus.DBusException as e:
             logger.error("Error calling RegisterApplication: %s", e)
             return False
+    
     def enable_advertising(self):
         try:
             process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -173,7 +175,6 @@ class PeripheralController:
             reply_handler=lambda: logger.info("✅ Advertising registered"),
             error_handler=lambda e: logger.error("❌ Failed to register advertisement: %s", e),
         )
-
 
     def trust_device(self, mac_address):
         try:
