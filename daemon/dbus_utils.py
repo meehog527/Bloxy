@@ -7,11 +7,8 @@ import logging
 import time
 
 from constants import (
-    BLUEZ_SERVICE_NAME,
-    ADAPTER_PATH,
-    GATT_MANAGER_IFACE,
-    DBUS_PROP_IFACE,
-    AGENT_PATH,
+    DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH
 )
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")

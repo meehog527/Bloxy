@@ -12,7 +12,12 @@ from gi.repository import GLib
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
 from evdev_tracker import EvdevTracker, HIDMouseService
-from dbus_utils import DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE, PeripheralController
+from dbus_utils import PeripheralController
+
+from constants import (
+    DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH
+)
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("hid_daemon")
