@@ -109,7 +109,7 @@ def main():
     
     app = HIDApplication(bus, services, path=DAEMON_OBJ_PATH)
 
-    controller = PeripheralController(bus, services, app_path=DAEMON_OBJ_PATH)
+    controller = PeripheralController(bus, services, app_path=HID_APP_PATH)
 
     # Defer controller.start() until the main loop is active
     def init_controller():
