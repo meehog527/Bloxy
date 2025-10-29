@@ -178,7 +178,7 @@ class PeripheralController:
             return False
 
         # Make adapter discoverable/pairable
-        if not self.make_adapter_discoverable():
+        if not self.set_discoverable_pairable():
             logger.error("❌ Could not make adapter discoverable.")
             return False
 
