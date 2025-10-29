@@ -25,9 +25,6 @@ logger = logging.getLogger("PeripheralController")
 
 
 class Agent(dbus.service.Object):
-    """
-    BlueZ Agent1 implementation with correct method signatures.
-    """
     def __init__(self, bus):
         super().__init__(bus, AGENT_PATH)
 
@@ -67,9 +64,6 @@ class Agent(dbus.service.Object):
 
 
 class PeripheralController:
-    """
-    Controls adapter power, agent registration, GATT application registration, and advertising.
-    """
     def __init__(self, bus, services, app_path='/org/bluez/hid'):
         self.bus = bus
         self.services = services
@@ -131,15 +125,12 @@ class PeripheralController:
             logger.debug(f"Attempting to register GATT application at path {self.app_path} "
                          f"on adapter {self.adapter_path}")
 
-            # Get the GattManager1 interface
             obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             gatt_manager = dbus.Interface(obj, GATT_MANAGER_IFACE)
 
-            # Ensure we’re passing a proper ObjectPath and options dictionary
             app_obj_path = dbus.ObjectPath(self.app_path)
             options = dbus.Dictionary({}, signature='sv')
 
-            # Call RegisterApplication (BlueZ will immediately call back into GetManagedObjects)
             gatt_manager.RegisterApplication(app_obj_path, options)
 
             logger.info("✅ GATT application registered.")
@@ -149,7 +140,7 @@ class PeripheralController:
             logger.exception("❌ Exception during RegisterApplication")
             logger.error(f"❌ Failed to register GATT application: {e}")
             return False
-        
+
     def enable_advertising(self):
         try:
             process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

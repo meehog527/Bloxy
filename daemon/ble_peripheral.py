@@ -8,9 +8,6 @@ import yaml
 
 from dbus_utils import DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE
 
-# -------------------------------------------------------------------
-# Logging configuration
-# -------------------------------------------------------------------
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -19,14 +16,11 @@ logger = logging.getLogger("hid_daemon")
 
 
 class GattObject(dbus.service.Object):
-    """
-    Base GATT object that provides org.freedesktop.DBus.Properties helpers
-    and a helper to produce its managed object entry.
-    """
     dbus_interface = None  # override in subclasses
 
     def __init__(self, bus, path):
         super().__init__(bus, path)
+        self.path = path  # ensure set for get_managed_object
 
     @dbus.service.method(DBUS_PROP_IFACE, in_signature='ss', out_signature='v')
     def Get(self, interface, prop):
@@ -47,7 +41,12 @@ class GattObject(dbus.service.Object):
         return {}
 
     def get_managed_object(self):
-        return {self.path: {self.dbus_interface: self.get_property_map()}}
+        # Use dbus.ObjectPath for the key, strict types inside
+        return {
+            dbus.ObjectPath(self.path): {
+                self.dbus_interface: self.get_property_map()
+            }
+        }
 
 
 class HIDDescriptor(GattObject):
@@ -59,8 +58,8 @@ class HIDDescriptor(GattObject):
         self.flags = config.get('flags', [])
         raw_val = config.get('value', [])
         self.value = [dbus.Byte(int(v) & 0xFF) for v in raw_val]
-        self.path = f'{char.path}/desc{index}'
-        super().__init__(bus, self.path)
+        path = f'{char.path}/desc{index}'
+        super().__init__(bus, path)
 
     def get_property_map(self):
         return {
@@ -98,18 +97,18 @@ class HIDCharacteristic(GattObject):
         self.name = config.get('name', self.uuid)
         self.notifying = bool(config.get('notifying', False))
         self.descriptors = []
-        self.path = f'{service.path}/char{index}'
-        super().__init__(bus, self.path)
+        path = f'{service.path}/char{index}'
+        super().__init__(bus, path)
 
         for i, desc_cfg in enumerate(config.get('descriptors', [])):
             self.descriptors.append(HIDDescriptor(bus, i, self, desc_cfg))
 
     def get_property_map(self):
+        # Keep only the properties BlueZ expects here; expose Value via ReadValue/WriteValue
         return {
             'UUID': dbus.String(self.uuid),
             'Service': dbus.ObjectPath(self.service.path),
             'Flags': dbus.Array([dbus.String(f) for f in self.flags], signature='s'),
-            'Value': dbus.Array(self.value, signature='y'),
             'Notifying': dbus.Boolean(self.notifying),
         }
 
@@ -145,6 +144,7 @@ class HIDCharacteristic(GattObject):
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='a{sv}', out_signature='ay')
     def ReadValue(self, options):
+        # Return the current value
         return dbus.Array(self.value, signature='y')
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='aya{sv}', out_signature='')
@@ -181,8 +181,8 @@ class HIDService(GattObject):
         self.characteristics = []
         includes_cfg = config.get('includes', [])
         self.includes = [dbus.ObjectPath(p) for p in includes_cfg] if includes_cfg else []
-        self.path = f'/org/bluez/hid/service{index}'
-        super().__init__(bus, self.path)
+        path = f'/org/bluez/hid/service{index}'
+        super().__init__(bus, path)
 
         for i, char_cfg in enumerate(config.get('characteristics', [])):
             self.characteristics.append(HIDCharacteristic(bus, i, self, char_cfg))
@@ -202,10 +202,6 @@ class HIDService(GattObject):
 
 
 class HIDApplication(dbus.service.Object):
-    """
-    Implements org.freedesktop.DBus.ObjectManager for the HID GATT application.
-    Register this object's path with org.bluez.GattManager1.RegisterApplication.
-    """
     def __init__(self, bus, services, path='/org/bluez/hid'):
         self.path = path
         self.services = services
@@ -214,8 +210,10 @@ class HIDApplication(dbus.service.Object):
 
     @dbus.service.method("org.freedesktop.DBus.ObjectManager", in_signature='', out_signature="a{oa{sa{sv}}}")
     def GetManagedObjects(self):
+        # Build strict a{oa{sa{sv}}} with dbus types
         response = {}
         for svc in self.services:
+            # Each get_managed_object returns a dict keyed by dbus.ObjectPath
             response.update(svc.get_managed_object())
         return response
 
