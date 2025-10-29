@@ -144,6 +144,9 @@ class PeripheralController:
 
             logger.debug(f"RegisterApplication call with app_obj_path={app_obj_path}, options={options}")
 
+            obj = self.bus.get_object("org.freedesktop.DBus", "/org/bluez/hid")
+            print("Introspect:", obj.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable"))
+            
             # Make the call
             gatt_manager.RegisterApplication(app_obj_path, options)
 
