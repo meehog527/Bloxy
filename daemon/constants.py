@@ -38,3 +38,9 @@ HID_SERVICE_BASE   = f"{HID_APP_PATH}/service"     # base path for services/char
 # Daemon Control API (separate object)
 # ================================
 DAEMON_OBJ_PATH    = "/org/example/HIDPeripheral/daemon"
+
+# ================================
+# Advertising Interfaces
+# ================================
+LE_ADVERTISING_MANAGER_IFACE = "org.bluez.LEAdvertisingManager1"
+LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"

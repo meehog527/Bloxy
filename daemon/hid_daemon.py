@@ -111,12 +111,15 @@ def main():
 
     controller = PeripheralController(bus, services, app_path=HID_APP_PATH)
 
+
     # Defer controller.start() until the main loop is active
     def init_controller():
         if not controller.start():
             logger.error("Peripheral controller failed to start, exiting.")
             sys.exit(1)
 
+        controller.register_advertisement()
+        
         kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
         mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
 

@@ -9,7 +9,7 @@ import time
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
     HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, AGENT_PATH, ADAPTER_PATH,
-    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE
+    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE
 )
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -160,6 +160,20 @@ class PeripheralController:
         except Exception as e:
             logger.error(f"❌ Error enabling advertising: {e}")
             return False
+        
+    def register_advertisement(self):
+        adapter_path = ADAPTER_PATH
+        adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, adapter_path)
+        ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
+
+        self.advertisement = Advertisement(self.bus, 0)
+        ad_manager.RegisterAdvertisement(
+            self.advertisement.get_path(),
+            {},
+            reply_handler=lambda: logger.info("✅ Advertising registered"),
+            error_handler=lambda e: logger.error("❌ Failed to register advertisement: %s", e),
+        )
+
 
     def trust_device(self, mac_address):
         try:
@@ -227,3 +241,46 @@ class PeripheralController:
 
         return connected
 
+import dbus
+import dbus.service
+
+class Advertisement(dbus.service.Object):
+    PATH_BASE = "/org/example/advertisement"
+
+    def __init__(self, bus, index, advertising_type="peripheral"):
+        self.path = self.PATH_BASE + str(index)
+        self.bus = bus
+        self.ad_type = advertising_type
+        self.service_uuids = ["1812"]  # HID Service UUID
+        self.local_name = "bloxy"
+        self.manufacturer_data = {}
+        self.solicit_uuids = None
+        self.service_data = {}
+        self.include_tx_power = True
+        super().__init__(bus, self.path)
+
+    def get_properties(self):
+        return {
+            LE_ADVERTISEMENT_IFACE: {
+                "Type": self.ad_type,
+                "ServiceUUIDs": dbus.Array(self.service_uuids, signature="s"),
+                "LocalName": dbus.String(self.local_name),
+                "IncludeTxPower": dbus.Boolean(self.include_tx_power),
+            }
+        }
+
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
+
+    @dbus.service.method(dbus.PROPERTIES_IFACE,
+                         in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        if interface != LE_ADVERTISEMENT_IFACE:
+            raise dbus.exceptions.DBusException(
+                "org.freedesktop.DBus.Error.InvalidArgs: Invalid interface %s" % interface
+            )
+        return self.get_properties()[LE_ADVERTISEMENT_IFACE]
+
+    @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature="", out_signature="")
+    def Release(self):
+        print("Advertisement released")
