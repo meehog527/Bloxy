@@ -56,7 +56,7 @@ class Agent(dbus.service.Object):
 
 
 class PeripheralController:
-    def __init__(self, bus, services, app_path='/org/bluez/hid'):
+    def __init__(self, bus, services, app_path=HID_APP_PATH):
         self.bus = bus
         self.services = services
         self.app_path = app_path
@@ -208,7 +208,7 @@ class PeripheralController:
 
     def trust_device(self, mac_address):
         try:
-            device_path = f"/{ADAPTER_PATH}/dev_{mac_address.replace(':', '_')}"
+            device_path = f"{ADAPTER_PATH}/dev_{mac_address.replace(':', '_')}"
             device = self.bus.get_object(BLUEZ_SERVICE_NAME, device_path)
             props = dbus.Interface(device, DBUS_PROP_IFACE)
             props.Set("org.bluez.Device1", "Trusted", dbus.Boolean(True))

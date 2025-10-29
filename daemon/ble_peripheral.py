@@ -184,7 +184,7 @@ class HIDService(GattObject):
         self.characteristics = []
         includes_cfg = config.get('includes', [])
         self.includes = [dbus.ObjectPath(p) for p in includes_cfg] if includes_cfg else []
-        self.path = f'{DAEMON_OBJ_PATH}/service{index}'
+        self.path = f"{HID_SERVICE_BASE}{index}"
         super().__init__(bus, self.path)
 
         for i, char_cfg in enumerate(config.get('characteristics', [])):
@@ -205,7 +205,7 @@ class HIDService(GattObject):
 
 
 class HIDApplication(dbus.service.Object):
-    def __init__(self, bus, services, path=DAEMON_OBJ_PATH):
+    def __init__(self, bus, services, path=HID_APP_PATH):
         self.path = path
         self.services = services
         super().__init__(bus, self.path)
