@@ -123,6 +123,8 @@ class PeripheralController:
             app_obj_path = dbus.ObjectPath(self.app_path)
             options = dbus.Dictionary({}, signature='sv')
 
+            print (app_obj_path)  # Debug log
+            
             gatt_manager.RegisterApplication(app_obj_path, options)
 
             logger.info("✅ GATT application registered.")
