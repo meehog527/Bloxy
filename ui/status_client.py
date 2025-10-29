@@ -2,7 +2,7 @@ import json
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 
-from constants import DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE
+from constants import DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE, HID_APP_PATH
 
 class StatusClient:
     """
@@ -17,7 +17,7 @@ class StatusClient:
         self.bus = dbus.SystemBus()
 
         # Get proxy object and interface
-        self.proxy = self.bus.get_object(DAEMON_BUS_NAME, DAEMON_OBJ_PATH)
+        self.proxy = self.bus.get_object(DAEMON_BUS_NAME, HID_APP_PATH)
         self.iface = dbus.Interface(self.proxy, DAEMON_IFACE)
 
         self.latest_status = None
