@@ -151,93 +151,56 @@ peripheral:
           notifying: false
           flags: [write-without-response]
           descriptors: []
+        # ---------------- Keyboard Input Report (Report ID 1) ----------------
         - name: HID Report - Input (Keyboard)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
           value:
-            - 0x01
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
+            - 0x01  # Report ID 1
+            - 0x00  # Modifier keys
+            - 0x00  # Reserved
+            - 0x00  # Keycode 1
+            - 0x00  # Keycode 2
+            - 0x00  # Keycode 3
+            - 0x00  # Keycode 4
+            - 0x00  # Keycode 5
+            - 0x00  # Keycode 6
           notifying: true
           flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Adds a readable Report Reference descriptor to a characteristic in your BLE GATT server, telling clients that the characteristic represents Input Report 1 — typically used in HID devices like keyboards or mice
               value:
-                - 0x01 # Report ID 1
-                - 0x01 # Input Report
+                - 0x01  # Report ID 1
+                - 0x01  # Input Report
               flags: [read]
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
-              description: Enables notifications or indications
-              value:
-                - 0x00
-                - 0x00
+              value: [0x00, 0x00]
               flags: [read, write]
+
+        # ---------------- Mouse Input Report (Report ID 2) ----------------
         - name: HID Report - Input (Mouse)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)
           value:
-            - 0x02
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
+            - 0x02  # Report ID 2
+            - 0x00  # Buttons
+            - 0x00  # X delta
+            - 0x00  # Y delta
           notifying: true
           flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Tells clients that the characteristic represents Input Report 2 (mouse)
               value:
-                - 0x02 # Report ID 2
-                - 0x01 # Input Report
+                - 0x02  # Report ID 2
+                - 0x01  # Input Report
               flags: [read]
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
-              description: Enables notifications or indications
-              value:
-                - 0x00
-                - 0x00
+              value: [0x00, 0x00]
               flags: [read, write]
-        - name: HID Report - Output (Keyboard LEDs)
-          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Output (Keyboard LEDs)
-          value:
-            - 0x01
-            - 0x00
-          notifying: false
-          flags: [read, write]
-          descriptors:
-            - name: Report Reference Descriptor
-              uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Tells clients that the characteristic represents Output Report 1 (Keyboard)
-              value:
-                - 0x01 # Report ID 1
-                - 0x02 # Output Report
-              flags: [read]
-        - name: HID Report - Feature
-          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Feature
-          value:
-            - 0x01
-          notifying: false
-          flags: [read, write]
-          descriptors:
-            - name: Report Reference Descriptor
-              uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Tells clients that the characteristic represents Feature Report 1 (Keyboard)
-              value:
-                - 0x01 # Report ID 1
-                - 0x03 # Feature Report
-              flags: [read]
     - name: Battery Service
       uuid: 0000180f-0000-1000-8000-00805f9b34fb
       description: Battery Service
