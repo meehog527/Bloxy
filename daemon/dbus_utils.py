@@ -133,31 +133,23 @@ class PeripheralController:
 
             # Get the GattManager1 interface
             obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
-            logger.debug(f"Got adapter object: {obj}")
-
             gatt_manager = dbus.Interface(obj, GATT_MANAGER_IFACE)
-            logger.debug(f"Created GattManager1 interface: {gatt_manager}")
 
             # Ensure we’re passing a proper ObjectPath and options dictionary
             app_obj_path = dbus.ObjectPath(self.app_path)
             options = dbus.Dictionary({}, signature='sv')
 
-            logger.debug(f"RegisterApplication call with app_obj_path={app_obj_path}, options={options}")
-
-            obj = self.bus.get_object("org.freedesktop.DBus", "/org/bluez/hid")
-            print("Introspect:", obj.Introspect(dbus_interface="org.freedesktop.DBus.Introspectable"))
-            
-            # Make the call
+            # Call RegisterApplication (BlueZ will immediately call back into GetManagedObjects)
             gatt_manager.RegisterApplication(app_obj_path, options)
 
             logger.info("✅ GATT application registered.")
             return True
 
         except Exception as e:
-            logger.exception("❌ Exception during RegisterApplication")  # logs stack trace too
+            logger.exception("❌ Exception during RegisterApplication")
             logger.error(f"❌ Failed to register GATT application: {e}")
             return False
-
+        
     def enable_advertising(self):
         try:
             process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

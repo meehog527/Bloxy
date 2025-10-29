@@ -105,61 +105,66 @@ def main():
     app = HIDApplication(bus, services, path='/org/bluez/hid')
     controller = PeripheralController(bus, services, app_path='/org/bluez/hid')
 
-    if not controller.start():
-        logger.error("Peripheral controller failed to start, exiting.")
-        sys.exit(1)
+    # Defer controller.start() until after the main loop is running
+    def init_controller():
+        if not controller.start():
+            logger.error("Peripheral controller failed to start, exiting.")
+            sys.exit(1)
 
-    kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
-    mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
+        # Validate input devices
+        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
+        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
 
-    if not validate_input_device(kdev_path, "keyboard"):
-        logger.error("Keyboard device not valid, exiting.")
-        sys.exit(1)
+        if not validate_input_device(kdev_path, "keyboard"):
+            logger.error("Keyboard device not valid, exiting.")
+            sys.exit(1)
+        if not validate_input_device(mdev_path, "mouse"):
+            logger.error("Mouse device not valid, exiting.")
+            sys.exit(1)
 
-    if not validate_input_device(mdev_path, "mouse"):
-        logger.error("Mouse device not valid, exiting.")
-        sys.exit(1)
+        keyboard_dev = EvdevTracker(kdev_path)
+        mouse_dev = EvdevTracker(mdev_path)
 
-    keyboard_dev = EvdevTracker(kdev_path)
-    mouse_dev = EvdevTracker(mdev_path)
+        daemon = HIDPeripheralService(
+            bus=bus,
+            services=services,
+            controller=controller,
+            trackers={'keyboard': keyboard_dev, 'mouse': mouse_dev},
+            report_builder=report_builder
+        )
 
-    daemon = HIDPeripheralService(
-        bus=bus,
-        services=services,
-        controller=controller,
-        trackers={'keyboard': keyboard_dev, 'mouse': mouse_dev},
-        report_builder=report_builder
-    )
+        keyboard_char = None
+        mouse_char = None
+        mouse_svc = None
+        for svc in services:
+            for ch in svc.characteristics:
+                name = (ch.name or '').lower()
+                if 'keyboard' in name and 'report' in name:
+                    keyboard_char = ch
+                elif 'mouse' in name and 'report' in name:
+                    mouse_char = ch
+                    mouse_svc = HIDMouseService(mdev_path, ch)
 
-    keyboard_char = None
-    mouse_char = None
-    mouse_svc = None
-    for svc in services:
-        for ch in svc.characteristics:
-            name = (ch.name or '').lower()
-            if 'keyboard' in name and 'report' in name:
-                keyboard_char = ch
-            elif 'mouse' in name and 'report' in name:
-                mouse_char = ch
-                mouse_svc = HIDMouseService(mdev_path, ch)
+        def update_reports():
+            try:
+                keyboard_dev.poll()
+                if mouse_svc:
+                    mouse_svc.poll()
+                if keyboard_char:
+                    kb_report = report_builder.build_keyboard_report(list(keyboard_dev.pressed_keys))
+                    keyboard_char.update_value(kb_report)
+                daemon.StatusUpdated(daemon.GetStatus())
+            except Exception as e:
+                logger.exception("Error in update_reports: %s", e)
+            return True
 
-    def update_reports():
-        try:
-            keyboard_dev.poll()
-            if mouse_svc:
-                mouse_svc.poll()
-            if keyboard_char:
-                kb_report = report_builder.build_keyboard_report(list(keyboard_dev.pressed_keys))
-                keyboard_char.update_value(kb_report)
-            daemon.StatusUpdated(daemon.GetStatus())
-        except Exception as e:
-            logger.exception("Error in update_reports: %s", e)
-        return True
+        GLib.timeout_add(20, update_reports)
+        logger.info("HID peripheral daemon running.")
+        return False  # run once
 
-    GLib.timeout_add(20, update_reports)
-    logger.info("HID peripheral daemon running.")
+    GLib.idle_add(init_controller)
+
     GLib.MainLoop().run()
-
 
 if __name__ == '__main__':
     main()
