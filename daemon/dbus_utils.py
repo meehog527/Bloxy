@@ -14,7 +14,7 @@ GATT_SERVICE_IFACE = 'org.bluez.GattService1'
 GATT_CHRC_IFACE = 'org.bluez.GattCharacteristic1'
 GATT_DESC_IFACE = 'org.bluez.GattDescriptor1'
 
-AGENT_PATH = "/org/bluez/hid_agent"
+AGENT_PATH = "/org/example/hid_agent"
 
 DAEMON_BUS_NAME = 'org.example.HIDPeripheral'
 DAEMON_OBJ_PATH = '/org/example/HIDPeripheral'

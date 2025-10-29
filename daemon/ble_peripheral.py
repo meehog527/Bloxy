@@ -181,8 +181,8 @@ class HIDService(GattObject):
         self.characteristics = []
         includes_cfg = config.get('includes', [])
         self.includes = [dbus.ObjectPath(p) for p in includes_cfg] if includes_cfg else []
-        path = f'/org/bluez/hid/service{index}'
-        super().__init__(bus, path)
+        self.path = f'/org/example/HIDPeripheral/service{index}'
+        super().__init__(bus, self.path)
 
         for i, char_cfg in enumerate(config.get('characteristics', [])):
             self.characteristics.append(HIDCharacteristic(bus, i, self, char_cfg))
@@ -202,7 +202,7 @@ class HIDService(GattObject):
 
 
 class HIDApplication(dbus.service.Object):
-    def __init__(self, bus, services, path='/org/bluez/hid'):
+    def __init__(self, bus, services, path='/org/example/HIDPeripheral'):
         self.path = path
         self.services = services
         super().__init__(bus, self.path)

@@ -101,8 +101,8 @@ def main():
     report_builder = HIDReportBuilder(report_yaml)
 
     services = [HIDService(bus, i, svc_cfg) for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
-    app = HIDApplication(bus, services, path='/org/bluez/hid')
-    controller = PeripheralController(bus, services, app_path='/org/bluez/hid')
+    app = HIDApplication(bus, services, path='/org/example/HIDPeripheral')
+    controller = PeripheralController(bus, services, app_path='/org/example/HIDPeripheral')
 
     # Defer controller.start() until the main loop is active
     def init_controller():
