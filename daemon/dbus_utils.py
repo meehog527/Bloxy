@@ -58,6 +58,10 @@ class Agent(dbus.service.Object):
 class PeripheralController:
     def __init__(self, bus, services, app_path=HID_APP_PATH):
         self.bus = bus
+        self.manager = dbus.Interface(
+            self.bus.get_object("org.bluez", "/"),
+            "org.freedesktop.DBus.ObjectManager"
+        )
         self.services = services
         self.app_path = app_path
         self.adapter_path = ADAPTER_PATH
@@ -205,15 +209,9 @@ class PeripheralController:
     def get_status(self):
         return {'is_on': self.is_on}
     
-    def list_connected_devices():
-        bus = dbus.SystemBus()
-        manager = dbus.Interface(
-            bus.get_object("org.bluez", "/"),
-            "org.freedesktop.DBus.ObjectManager"
-        )
-
+    def list_connected_devices(self):
         connected = []
-        objects = manager.GetManagedObjects()
+        objects = self.manager.GetManagedObjects()
         for path, ifaces in objects.items():
             if "org.bluez.Device1" in ifaces:
                 props = ifaces["org.bluez.Device1"]
