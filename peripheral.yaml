@@ -156,7 +156,6 @@ peripheral:
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
           value:
-            - 0x01  # Report ID 1
             - 0x00  # Modifier keys
             - 0x00  # Reserved
             - 0x00  # Keycode 1
@@ -184,7 +183,6 @@ peripheral:
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)
           value:
-            - 0x02  # Report ID 2
             - 0x00  # Buttons
             - 0x00  # X delta
             - 0x00  # Y delta
