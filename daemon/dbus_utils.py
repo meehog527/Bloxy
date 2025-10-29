@@ -8,7 +8,8 @@ import time
 
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
-    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, AGENT_PATH, ADAPTER_PATH,
+    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE
 )
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
