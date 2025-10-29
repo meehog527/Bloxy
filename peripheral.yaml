@@ -1,31 +1,24 @@
-#peripheral.yaml
-
-#See https://www.bluetooth.com/specifications/assigned-numbers/
-
 peripheral:
-  localName: Bloxy
-  appearance: 963  # Mouse/Keyboard Combo.  
+  localName: BloxyMouse
+  appearance: 962  # Mouse
   services:
-    - name: HID service
+    - name: HID Service
       uuid: 00001812-0000-1000-8000-00805f9b34fb
-      description: Human Interface Device Service
       type: primary
       characteristics:
         - name: HID Information
           uuid: 00002a4a-0000-1000-8000-00805f9b34fb
-          description: HID Information (Version, Country Code, Flags)
-          value: 
-            - 0x11 # HID Minor Version 11
-            - 0x01 # HID Major Version 1
-            - 0x00 # Country Code 0 (not localized)
-            - 0x03 # Flags 3 (normally used)
-          notifying: false
+          value:
+            - 0x11  # HID Version 1.11
+            - 0x01  # Country Code 0 (not localized)
+            - 0x00
+            - 0x02  # Flags: normally 0x02 (remote wake)
           flags: [read]
-          descriptors: []
+
         - name: HID Report Map
           uuid: 00002a4b-0000-1000-8000-00805f9b34fb
-          description:  HID Report Map characteristic (defines HID structure)
-          value:     
+          value:
+            # Minimal 3‑button mouse descriptor
             - 0x05  # Usage Page (Generic Desktop)
             - 0x01
             - 0x09  # Usage (Mouse)
@@ -35,7 +28,6 @@ peripheral:
             - 0x09  #   Usage (Pointer)
             - 0x01
             - 0xA1  #   Collection (Physical)
-            - 0x00
             - 0x05  #     Usage Page (Buttons)
             - 0x09
             - 0x01  #     Usage Minimum (1)
@@ -75,260 +67,34 @@ peripheral:
             - 0x06  #     Input (Data,Var,Rel)
             - 0xC0  #   End Collection
             - 0xC0  # End Collection
-
-          notifying: false
           flags: [read]
-          descriptors:
-            - name: Battery Service External Report Reference Descriptor
-              uuid: 00002907-0000-1000-8000-00805f9b34fb
-              description: External Report Reference Descriptor linking to Battery Service
-              value: 
-                - 0x0F # UUID 0x180F (Battery Service)
-                - 0x18
-              flags: [read]
+
         - name: HID Protocol Mode
           uuid: 00002a4e-0000-1000-8000-00805f9b34fb
-          description: Protocol Mode characteristic (Report Mode = 1)
-          value: 
-            - 0x01
-          notifying: false
+          value: [0x01]   # Report Protocol Mode
           flags: [read, write-without-response]
-          descriptors: []
+
         - name: HID Control Point
           uuid: 00002a4c-0000-1000-8000-00805f9b34fb
-          description: HID Control Point characteristic (used to suspend/resume)
-          value: 
-            - 0x00
-          notifying: false
+          value: [0x00]
           flags: [write-without-response]
-          descriptors: []
-        - name: HID Report - Input (Keyboard)
-          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Input (Keyboard)
-          value:
-            - 0x01
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
-          notifying: true
-          flags: [read, notify]
-          descriptors:
-            - name: Report Reference Descriptor
-              uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Adds a readable Report Reference descriptor to a characteristic in your BLE GATT server, telling clients that the characteristic represents Input Report 1 — typically used in HID devices like keyboards or mice
-              value:
-                - 0x01 # Report ID 1
-                - 0x01 # Input Report
-              flags: [read]
-            - name: Client Characteristic Configuration Descriptor
-              uuid: 00002902-0000-1000-8000-00805f9b34fb
-              description: Enables notifications or indications
-              value:
-                - 0x00
-                - 0x00
-              flags: [read, write]
+
         - name: HID Report - Input (Mouse)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Input (Mouse)
           value:
-            - 0x02
-            - 0x00
-            - 0x00
-            - 0x00
-            - 0x00
+            - 0x00  # Buttons
+            - 0x00  # X
+            - 0x00  # Y
           notifying: true
           flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Tells clients that the characteristic represents Input Report 2 (mouse)
               value:
-                - 0x02 # Report ID 2
-                - 0x01 # Input Report
+                - 0x01  # Report ID 1
+                - 0x01  # Input Report
               flags: [read]
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
-              description: Enables notifications or indications
-              value:
-                - 0x00
-                - 0x00
+              value: [0x00, 0x00]
               flags: [read, write]
-        - name: HID Report - Output (Keyboard LEDs)
-          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Output (Keyboard LEDs)
-          value:
-            - 0x01
-            - 0x00
-          notifying: false
-          flags: [read, write]
-          descriptors:
-            - name: Report Reference Descriptor
-              uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Tells clients that the characteristic represents Output Report 1 (Keyboard)
-              value:
-                - 0x01 # Report ID 1
-                - 0x02 # Output Report
-              flags: [read]
-        - name: HID Report - Feature
-          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
-          description: HID Report - Feature
-          value:
-            - 0x01
-          notifying: false
-          flags: [read, write]
-          descriptors:
-            - name: Report Reference Descriptor
-              uuid: 00002908-0000-1000-8000-00805f9b34fb
-              description: Tells clients that the characteristic represents Feature Report 1 (Keyboard)
-              value:
-                - 0x01 # Report ID 1
-                - 0x03 # Feature Report
-              flags: [read]
-    - name: Battery Service
-      uuid: 0000180f-0000-1000-8000-00805f9b34fb
-      description: Battery Service
-      type: primary
-      characteristics:
-        - name: Battery Level
-          uuid: 00002a19-0000-1000-8000-00805f9b34fb
-          description: Battery Level characteristic
-          value:
-            - 0x64 # Battery level at 100%
-          notifying: true
-          flags: [read, notify]
-          descriptors:
-            - name: Battery level format descriptor
-              uuid: 00002904-0000-1000-8000-00805f9b34fb
-              description: Battery Level Format Descriptor
-              value:
-                - 0x04 # Format: unsigned 8-bit integer
-                - 0x01 # Exponent: 1
-                - 0x00 # Unit: percentage
-                - 0x00 # Namespace: Bluetooth SIG Assigned Numbers
-                - 0x64 # Description: Battery level percentage
-              flags: [read]
-            - name: Client Characteristic Configuration Descriptor
-              uuid: 00002902-0000-1000-8000-00805f9b34fb
-              description: Enables notifications or indications
-              value:
-                - 0x00
-                - 0x00
-              flags: [read, write]
-    - name: Device Information Service
-      uuid: 0000180a-0000-1000-8000-00805f9b34fb
-      description: Device Information Service
-      type: primary
-      characteristics:
-        - name: Manufacturer Name String
-          uuid: 00002a29-0000-1000-8000-00805f9b34fb
-          description: Manufacturer Name String characteristic
-          value:
-            - 0x4D # 'M'
-            - 0x65 # 'e'
-            - 0x65 # 'e'
-            - 0x68 # 'h'
-            - 0x6F # 'o'
-            - 0x67 # 'g'
-            - 0x20 # ' '
-            - 0x43 # 'C'
-            - 0x6F # 'o'
-            - 0x2E # '.'
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: Model Number String
-          uuid: 00002a24-0000-1000-8000-00805f9b34fb
-          description: Model Number String characteristic
-          value:
-            - 0x42 # 'B'
-            - 0x6C # 'l'
-            - 0x6F # 'o'
-            - 0x78 # 'x'
-            - 0x79 # 'y'
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: Serial Number String
-          uuid: 00002a25-0000-1000-8000-00805f9b34fb
-          description: Serial Number String characteristic
-          value:
-            - 0x30 # '0'
-            - 0x30 # '0'
-            - 0x31 # '1'
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: Firmware Revision String
-          uuid: 00002a26-0000-1000-8000-00805f9b34fb
-          description: Firmware Revision String characteristic
-          value:
-            - 0x31 # '1'
-            - 0x2E # '.'
-            - 0x30 # '0'
-            - 0x2E # '.'
-            - 0x30 # '0'
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: Hardware Revision String
-          uuid: 00002a27-0000-1000-8000-00805f9b34fb
-          description: Hardware Revision String characteristic
-          value:
-            - 0x31 # '1'
-            - 0x2E # '.'
-            - 0x30 # '0'
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: Software Revision String
-          uuid: 00002a28-0000-1000-8000-00805f9b34fb
-          description: Software Revision String characteristic
-          value:
-            - 0x31 # '1'
-            - 0x2E # '.'
-            - 0x30 # '0'
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: System ID
-          uuid: 00002a23-0000-1000-8000-00805f9b34fb
-          description: System ID characteristic
-          value:
-            - 0x12
-            - 0x34
-            - 0x56
-            - 0xFF
-            - 0xFE
-            - 0x9A
-            - 0xBC
-            - 0xDE
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: IEEE 11073-20601 Regulatory Certification Data List
-          uuid: 00002a2a-0000-1000-8000-00805f9b34fb
-          description: IEEE 11073-20601 Regulatory Certification Data List characteristic
-          value:
-            - 0x00
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: PnP ID
-          uuid: 00002a50-0000-1000-8000-00805f9b34fb
-          description: PnP ID characteristic
-          value:
-            - 0x01 # Vendor ID Source (1 = Bluetooth SIG)
-            - 0x34 # Vendor ID LSB
-            - 0x12 # Vendor ID MSB
-            - 0x78 # Product ID LSB
-            - 0x56 # Product ID MSB
-            - 0x00 # Product Version LSB
-            - 0x01 # Product Version MSB
-          notifying: false
-          flags: [read]
-          descriptors: []
