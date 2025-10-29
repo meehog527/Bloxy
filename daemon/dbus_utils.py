@@ -146,8 +146,9 @@ class PeripheralController:
                 self.app_path,
                 {},
                 reply_handler=lambda: logger.info("✅ RegisterApplication succeeded (async reply)."),
-                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s", traceback.format_exc()),
+                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)              
             )
+            
             logger.debug("RegisterApplication call sent, waiting for reply...")
             # ✅ Treat sending the async call as success
             return True
