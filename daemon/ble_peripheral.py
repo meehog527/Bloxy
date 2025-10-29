@@ -43,11 +43,6 @@ class GattObject(dbus.service.Object):
             return self.get_property_map()
         return {}
 
-    # Set is optional for GATT; only implement if you need writable properties
-    # @dbus.service.method(DBUS_PROP_IFACE, in_signature='ssv', out_signature='')
-    # def Set(self, interface, prop, value):
-    #     pass
-
     def get_property_map(self):
         return {}
 
@@ -63,7 +58,6 @@ class HIDDescriptor(GattObject):
         self.uuid = config['uuid']
         self.flags = config.get('flags', [])
         raw_val = config.get('value', [])
-        # store as bytes
         self.value = [dbus.Byte(int(v) & 0xFF) for v in raw_val]
         self.path = f'{char.path}/desc{index}'
         super().__init__(bus, self.path)
@@ -82,9 +76,8 @@ class HIDDescriptor(GattObject):
 
     @dbus.service.method(GATT_DESC_IFACE, in_signature='aya{sv}', out_signature='')
     def WriteValue(self, value, options):
-        # CCCD handling (0x2902) toggles notify/indicate
+        # CCCD handling (0x2902)
         if self.uuid.lower() == '00002902-0000-1000-8000-00805f9b34fb':
-            # value is array of bytes; 0x01 for notify, 0x02 for indicate (bitmask)
             self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
             notify_enabled = len(value) >= 1 and (int(value[0]) & 0x01) != 0
             self.char.set_notifying(notify_enabled)
@@ -116,23 +109,20 @@ class HIDCharacteristic(GattObject):
             'UUID': dbus.String(self.uuid),
             'Service': dbus.ObjectPath(self.service.path),
             'Flags': dbus.Array([dbus.String(f) for f in self.flags], signature='s'),
-            # Value and Notifying are valid properties for BlueZ characteristics
             'Value': dbus.Array(self.value, signature='y'),
             'Notifying': dbus.Boolean(self.notifying),
         }
 
     def get_managed_object(self):
         obj = super().get_managed_object()
-        # Do NOT add a nonstandard "Descriptors" property.
-        # BlueZ discovers descriptors by GetManagedObjects tree entries.
         for desc in self.descriptors:
             obj.update(desc.get_managed_object())
         return obj
 
     def set_notifying(self, enabled: bool):
-        if self.notifying != bool(enabled):
-            self.notifying = bool(enabled)
-            # Emit PropertiesChanged for Notifying
+        enabled = bool(enabled)
+        if self.notifying != enabled:
+            self.notifying = enabled
             try:
                 self.PropertiesChanged(
                     self.dbus_interface,
@@ -143,7 +133,6 @@ class HIDCharacteristic(GattObject):
                 logger.warning(f"Failed to emit PropertiesChanged(Notifying) for {self.name}: {e}")
 
     def update_value(self, new_value_bytes):
-        # Update internal value and emit PropertiesChanged to notify subscribers
         self.value = [dbus.Byte(int(v) & 0xFF) for v in new_value_bytes]
         try:
             self.PropertiesChanged(
@@ -151,7 +140,6 @@ class HIDCharacteristic(GattObject):
                 {'Value': dbus.Array(self.value, signature='y')},
                 []
             )
-        # If host isn't subscribed, BlueZ will still accept PropertiesChanged; it just won't deliver a notification.
         except Exception as e:
             logger.warning(f"Failed to emit PropertiesChanged(Value) for {self.name}: {e}")
 
@@ -161,9 +149,7 @@ class HIDCharacteristic(GattObject):
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='aya{sv}', out_signature='')
     def WriteValue(self, value, options):
-        # For HID output/feature reports, you may want to handle writes here.
         self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
-        # Optionally emit PropertiesChanged so the UI reflects the write
         try:
             self.PropertiesChanged(
                 self.dbus_interface,
@@ -191,10 +177,8 @@ class HIDService(GattObject):
 
     def __init__(self, bus, index, config):
         self.uuid = config['uuid']
-        # Respect type if present; default to primary
         self.primary = (config.get('type', 'primary') == 'primary')
         self.characteristics = []
-        # Includes should be object paths; if you don't use them, leave empty
         includes_cfg = config.get('includes', [])
         self.includes = [dbus.ObjectPath(p) for p in includes_cfg] if includes_cfg else []
         self.path = f'/org/bluez/hid/service{index}'
