@@ -2,10 +2,7 @@ import json
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 
-DAEMON_BUS_NAME = 'DAEMON_BUS_NAME'
-DAEMON_OBJ_PATH = 'DAEMON_OBJ_PATH'
-DAEMON_IFACE = 'DAEMON_BUS_NAME'
-
+from constants.py import DAEMON_BUS_NAME, DAEMON_OBJ_PATH, DAEMON_IFACE
 
 class StatusClient:
     """
