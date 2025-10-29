@@ -156,6 +156,7 @@ peripheral:
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
           value:
+            - 0x01
             - 0x00  # Modifier keys
             - 0x00  # Reserved
             - 0x00  # Keycode 1
@@ -183,6 +184,7 @@ peripheral:
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)
           value:
+            - 0x02
             - 0x00  # Buttons
             - 0x00  # X delta
             - 0x00  # Y delta
@@ -382,3 +384,15 @@ peripheral:
           notifying: false
           flags: [read]
           descriptors: []
+    - name: GAP Service
+      uuid: 00001800-0000-1000-8000-00805f9b34fb
+      type: primary
+      characteristics:
+        - name: Device Name
+          uuid: 00002a00-0000-1000-8000-00805f9b34fb
+          value: [0x42,0x6C,0x6F,0x78,0x79]   # "Bloxy"
+          flags: [read]
+        - name: Appearance
+          uuid: 00002a01-0000-1000-8000-00805f9b34fb
+          value: [0xC3, 0x03]   # 0x03C3 = Mouse/Keyboard combo
+          flags: [read]
