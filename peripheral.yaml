@@ -199,6 +199,16 @@ peripheral:
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+        - name: HID Report - Output (Keyboard LEDs)
+          uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+          description: HID Report - Output (Keyboard LEDs)
+          value: [0x00]
+          notifying: false
+          flags: [read, write]
+          descriptors:
+            - name: Report Reference Descriptor
+              uuid: 00002908-0000-1000-8000-00805f9b34fb
+              value: [0x01, 0x02]   # Report ID 1, Output
     - name: Battery Service
       uuid: 0000180f-0000-1000-8000-00805f9b34fb
       description: Battery Service
