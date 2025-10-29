@@ -128,16 +128,30 @@ class PeripheralController:
 
     def register_gatt_application(self):
         try:
-            gatt_manager = dbus.Interface(
-                self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path),
-                GATT_MANAGER_IFACE
-            )
+            logger.debug(f"Attempting to register GATT application at path {self.app_path} "
+                         f"on adapter {self.adapter_path}")
+
+            # Get the GattManager1 interface
+            obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
+            logger.debug(f"Got adapter object: {obj}")
+
+            gatt_manager = dbus.Interface(obj, GATT_MANAGER_IFACE)
+            logger.debug(f"Created GattManager1 interface: {gatt_manager}")
+
+            # Ensure we’re passing a proper ObjectPath and options dictionary
             app_obj_path = dbus.ObjectPath(self.app_path)
             options = dbus.Dictionary({}, signature='sv')
+
+            logger.debug(f"RegisterApplication call with app_obj_path={app_obj_path}, options={options}")
+
+            # Make the call
             gatt_manager.RegisterApplication(app_obj_path, options)
+
             logger.info("✅ GATT application registered.")
             return True
+
         except Exception as e:
+            logger.exception("❌ Exception during RegisterApplication")  # logs stack trace too
             logger.error(f"❌ Failed to register GATT application: {e}")
             return False
 
