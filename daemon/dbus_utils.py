@@ -278,7 +278,8 @@ class Advertisement(dbus.service.Object):
                 "ServiceUUIDs": dbus.Array(self.service_uuids, signature="s"),
                 "LocalName": dbus.String(self.local_name),
                 "IncludeTxPower": dbus.Boolean(self.include_tx_power),
-                "Flags": dbus.Byte(0x06) # General Discoverable Mode, BR/EDR Not Supported
+                "Flags": dbus.Byte(0x06), # General Discoverable Mode, BR/EDR Not Supported
+                "Appearance": dbus.UInt16(963)
             }
         }
 
