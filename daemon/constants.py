@@ -23,7 +23,7 @@ DAEMON_OBJ_PATH    = "/org/example/HIDPeripheral"
 
 
 # Application root path for your HID GATT application
-HID_APP_PATH       = "/org/bluez/hid"
+HID_APP_PATH       = "/org/example/HIDPeripheral"
 
 # Base path for services under your app
 HID_SERVICE_BASE   = f"{HID_APP_PATH}/service"
