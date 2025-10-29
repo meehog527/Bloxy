@@ -113,81 +113,30 @@ class PeripheralController:
             return False
 
     def register_gatt_application(self):
+        logger.debug("=== Register GATT Application ===")
+        logger.debug("Adapter path: %s", self.adapter_path)
+        logger.debug("App path: %s", self.app_path)
+        logger.debug("Bus name owner: %s", self.bus.get_unique_name())
+
         try:
-            logger.debug("=== Register GATT Application ===")
-            logger.debug(f"Adapter path: {self.adapter_path}")
-            logger.debug(f"App path: {self.app_path}")
-            logger.debug(f"Bus name owner: {self.bus.get_unique_name()}")
+            adapter_obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
+            gatt_manager = dbus.Interface(adapter_obj, GATT_MANAGER_IFACE)
+            logger.debug("GattManager1 interface found on adapter.")
+        except dbus.DBusException as e:
+            logger.error("Could not get GattManager1 on adapter: %s", e)
+            return
 
-            # Check adapter object exists
-            try:
-                obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
-                logger.debug("Adapter object retrieved successfully.")
-            except Exception as e:
-                logger.error(f"Failed to get adapter object at {self.adapter_path}: {e}")
-                return False
-
-            # Introspect adapter to confirm GattManager1 is present
-            try:
-                introspect_iface = dbus.Interface(obj, "org.freedesktop.DBus.Introspectable")
-                xml = introspect_iface.Introspect()
-                if GATT_MANAGER_IFACE in xml:
-                    logger.debug("GattManager1 interface found on adapter.")
-                else:
-                    logger.error("GattManager1 interface NOT found on adapter. Is bluetoothd running with -E?")
-            except Exception as e:
-                logger.error(f"Failed to introspect adapter: {e}")
-
-            gatt_manager = dbus.Interface(obj, GATT_MANAGER_IFACE)
-
-            # Confirm our application object is exported
-            try:
-                app_obj = self.bus.get_object(self.bus.get_unique_name(), self.app_path)
-                introspect_iface = dbus.Interface(app_obj, "org.freedesktop.DBus.Introspectable")
-                xml = introspect_iface.Introspect()
-                logger.debug(f"Introspection of {self.app_path}:\n{xml}")
-                if "ObjectManager" in xml:
-                    logger.debug("Our application object implements ObjectManager.")
-                else:
-                    logger.error("Our application object does NOT implement ObjectManager!")
-            except Exception as e:
-                logger.error(f"Could not introspect our own app object at {self.app_path}: {e}")
-
-            # Call GetManagedObjects directly to see what we’ll return
-            try:
-                app_iface = dbus.Interface(app_obj, "org.freedesktop.DBus.ObjectManager")
-                managed = app_iface.GetManagedObjects()
-                logger.debug(f"GetManagedObjects returned {len(managed)} objects:")
-                for path, ifaces in managed.items():
-                    logger.debug(f"  {path}: {list(ifaces.keys())}")
-            except Exception as e:
-                logger.error(f"Error calling GetManagedObjects on our app: {e}")
-
-            # Now attempt registration
-            app_obj_path = dbus.ObjectPath(self.app_path)
-            options = dbus.Dictionary({}, signature='sv')
-
-            logger.debug(f"Calling RegisterApplication({app_obj_path}, options={dict(options)})")
-
-            def reply_handler():
-                logger.info("✅ RegisterApplication succeeded (async reply).")
-
-            def error_handler(err):
-                logger.error(f"❌ RegisterApplication failed (async error): {err}")
-
-            # Use async form so we can see errors without blocking
-            gatt_manager.RegisterApplication(app_obj_path, options,
-                                            reply_handler=reply_handler,
-                                            error_handler=error_handler)
-
+        # ✅ Just register the application — no self‑introspection
+        try:
+            gatt_manager.RegisterApplication(
+                self.app_path,
+                {},
+                reply_handler=lambda: logger.info("✅ RegisterApplication succeeded (async reply)."),
+                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s", e),
+            )
             logger.debug("RegisterApplication call sent, waiting for reply...")
-            return True
-
-        except Exception as e:
-            logger.exception("❌ Exception during RegisterApplication")
-            logger.error(f"❌ Failed to register GATT application: {e}")
-            return False
-
+        except dbus.DBusException as e:
+            logger.error("Error calling RegisterApplication: %s", e)
     def enable_advertising(self):
         try:
             process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
