@@ -135,8 +135,13 @@ class HIDCharacteristic(GattObject):
                 logger.warning(f"Failed to emit PropertiesChanged(Notifying) for {self.name}: {e}")
 
     def update_value(self, new_value_bytes):
-        self.value = [dbus.Byte(int(v) & 0xFF) for v in new_value_bytes]
-        print(self.value)
+        new_value = [dbus.Byte(int(v) & 0xFF) for v in new_value_bytes]
+
+        # Skip if identical to current value
+        if new_value == self.value:
+            return
+
+        self.value = new_value
         try:
             self.PropertiesChanged(
                 self.dbus_interface,
