@@ -264,6 +264,7 @@ peripheral:
           flags: [read]
         - name: Peripheral Preferred Connection Parameters
           uuid: 00002a04-0000-1000-8000-00805f9b34fb
+          notifying: false
           value:
             - 0x06 # min interval (7.5ms)
             - 0x00
