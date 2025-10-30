@@ -76,16 +76,24 @@ class HIDDescriptor(GattObject):
     def ReadValue(self, options):
         return dbus.Array(self.value, signature='y')
 
-    @dbus.service.method(GATT_DESC_IFACE, in_signature='aya{sv}', out_signature='')
     def WriteValue(self, value, options):
-        # CCCD handling (0x2902)
-        if self.uuid.lower() == '00002902-0000-1000-8000-00805f9b34fb':
-            self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
-            notify_enabled = len(value) >= 1 and (int(value[0]) & 0x01) != 0
-            self.char.set_notifying(notify_enabled)
-            logger.info(f'CCCD write for {self.char.name}: notifications {"enabled" if notify_enabled else "disabled"}')
-        else:
-            self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
+        # Handle CCCD (0x2902) and emit PropertiesChanged so host sees reflection
+        try:
+            if self.uuid.lower() == '00002902-0000-1000-8000-00805f9b34fb':
+                self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
+                notify_enabled = len(value) >= 1 and (int(value[0]) & 0x01) != 0
+                self.char.set_notifying(notify_enabled)
+                self.PropertiesChanged(
+                    self.dbus_interface,
+                    {'Value': dbus.Array(self.value, signature='y')},
+                    []
+                )
+                logger.info(f'CCCD write for {self.char.name}: notifications {"enabled" if notify_enabled else "disabled"}')
+            else:
+                self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
+        except Exception as e:
+            logger.exception(f"Error in descriptor WriteValue: {e}")
+
 
 
 class HIDCharacteristic(GattObject):
