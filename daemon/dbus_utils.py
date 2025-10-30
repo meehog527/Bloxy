@@ -9,7 +9,8 @@ import time
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
     HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, AGENT_PATH, ADAPTER_PATH,
-    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE, HCI_DISCONNECT_REASONS
+    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE, HCI_DISCONNECT_REASONS,
+    DEVICE_IFACE
 )
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -112,6 +113,23 @@ class PeripheralController:
         if "Connected" in changed:
             if changed["Connected"]:
                 logger.info(f"✅ Device connected: {addr} ({name})")
+                if interface == DEVICE_IFACE:
+
+                    print(f"[+] Device connected: {path}")
+
+                    dev = self.bus.get(BLUEZ_SERVICE_NAME, path)
+
+                    # Mark device trusted so BlueZ will initiate pairing
+                    dev.Trusted = True
+
+                    try:
+                        # Trigger pairing immediately
+                        dev.Pair()
+                        print("[*] Pairing triggered (will send Security Request with AuthReq=0x09)")
+                    except Exception as e:
+                        print(f"[!] Pairing failed: {e}")
+
+
             else:
                 reason = None
                 try:

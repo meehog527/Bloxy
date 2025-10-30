@@ -45,6 +45,9 @@ DAEMON_OBJ_PATH    = "/org/example/HIDPeripheral/daemon"
 LE_ADVERTISING_MANAGER_IFACE = "org.bluez.LEAdvertisingManager1"
 LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"
 
+DEVICE_IFACE = "org.bluez.Device1"
+
+
 HCI_DISCONNECT_REASONS = {
     0x00: "Success",
     0x01: "Unknown HCI Command",
