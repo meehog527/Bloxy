@@ -40,8 +40,9 @@ class HIDService(ServiceInterface):
         return []
 
 async def main():
-    bus = await MessageBus(system=True).connect()
-
+    bus = await MessageBus().connect()
+    bus._bus_type = bus.BUS_TYPE_SYSTEM
+    
     # Register GATT application
     app = Application()
     bus.export(APP_PATH, app)
