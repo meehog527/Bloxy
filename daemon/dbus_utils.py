@@ -127,11 +127,15 @@ class PeripheralController:
                     try: 
                         props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
                         logger.info(f"✅ Device trusted: {addr}")
-                    except: pass
+                    except(e): 
+                        logger.info(f"✅ Device not trusted: {addr} - {e}")
+                        pass
                     try: 
                         props.Set(DEVICE_IFACE, "AutoConnect", dbus.Boolean(True))
                         logger.info(f"✅ Device auto-connect: {addr}")
-                    except: pass
+                    except: 
+                        logger.info(f"✅ Device not auto-connect: {addr} - {e}")
+                        pass
 
 
                     # Call Pair() on the device
