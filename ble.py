@@ -1,67 +1,32 @@
-import asyncio
-from dbus_next.aio import MessageBus
-from dbus_next.service import ServiceInterface, dbus_property
+import dbus
+import dbus.mainloop.glib
+from gi.repository import GLib
 
-from dbus_next import Variant
-from dbus_next.service import PropertyAccess
-
-# Constants
 BLUEZ_SERVICE_NAME = 'org.bluez'
 ADAPTER_PATH = '/org/bluez/hci0'
-APP_BASE = '/org/bluez/hidble/'
-APP_PATH = APP_BASE + '/app'
-APP_SERVICE_PATH = APP_BASE + '/service'
-SERVICE_IFACE = 'org.bluez.GattService1'
-APP_IFACE = 'org.bluez.GattApplication1'
+ADAPTER_IFACE = 'org.bluez.Adapter1'
 GATT_MANAGER_IFACE = 'org.bluez.GattManager1'
-HID_SERVICE_UUID = '1812'  # HID Service UUID
+LE_ADVERTISING_MANAGER_IFACE = 'org.bluez.LEAdvertisingManager1'
+DBUS_PROPS_IFACE = 'org.freedesktop.DBus.Properties'
 
-class Application(ServiceInterface):
+
+class BLEPeripheral:
     def __init__(self):
-        super().__init__(APP_IFACE)
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        self.bus = dbus.SystemBus()
+        self.adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, ADAPTER_PATH)
+        self.adapter_props = dbus.Interface(self.adapter, DBUS_PROPS_IFACE)
 
-class HIDService(ServiceInterface):
-    def __init__(self, index):
-        super().__init__(SERVICE_IFACE)
-        self.path = f'{APP_SERVICE_PATH}{index}'
-        self.uuid = HID_SERVICE_UUID
-        self.primary = True
-    
-    @dbus_property(access=PropertyAccess.READ)
-    def UUID(self) -> 's': #type: ignore
-        return self.uuid
+    def setup_adapter(self):
+        self.adapter_props.Set(ADAPTER_IFACE, 'Powered', dbus.Boolean(1))
+        self.adapter_props.Set(ADAPTER_IFACE, 'Discoverable', dbus.Boolean(1))
+        print("✅ Adapter powered and discoverable")
 
-    @dbus_property(access=PropertyAccess.READ)
-    def Primary(self) -> 'b': #type: ignore
-        return self.primary
-
-    @dbus_property(access=PropertyAccess.READ)
-    def Characteristics(self) -> 'ao': #type: ignore
-        return []
-
-async def main():
-    bus = MessageBus()
-    bus._bus_type = bus.BUS_TYPE_SYSTEM
-    await bus.Connect()
-    
-    # Register GATT application
-    app = Application()
-    bus.export(APP_PATH, app)
-
-    # Register HID service
-    hid_service = HIDService(0)
-    bus.export(hid_service.path, hid_service)
-
-    # Get GattManager1 interface
-    obj = await bus.introspect(BLUEZ_SERVICE_NAME, ADAPTER_PATH)
-    gatt_manager = bus.get_proxy_object(BLUEZ_SERVICE_NAME, ADAPTER_PATH, obj)
-    gatt_iface = gatt_manager.get_interface(GATT_MANAGER_IFACE)
-
-    # Register application
-    await gatt_iface.call_register_application(APP_PATH, {})
-
-    print("✅ HID BLE keyboard service registered. Waiting for connection...")
-    await asyncio.get_event_loop().create_future()
+    def run(self):
+        self.setup_adapter()
+        print("🚀 BLE Peripheral is running. Waiting for connections...")
+        GLib.MainLoop().run()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    peripheral = BLEPeripheral()
+    peripheral.run()
