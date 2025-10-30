@@ -2,6 +2,7 @@ import asyncio
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, dbus_property
 from dbus_next import Variant
+from dbus_next.service import PropertyAccess
 
 # Constants
 BLUEZ_SERVICE_NAME = 'org.bluez'
@@ -25,15 +26,15 @@ class HIDService(ServiceInterface):
         self.uuid = HID_SERVICE_UUID
         self.primary = True
 
-    @dbus_property(access='read')
+    @dbus_property(access=PropertyAccess.READ)
     def UUID(self) -> str:
         return self.uuid
 
-    @dbus_property(access='read')
+    @dbus_property(access=PropertyAccess.READ)
     def Primary(self) -> bool:
         return self.primary
 
-    @dbus_property(access='read')
+    @dbus_property(access=PropertyAccess.READ)
     def Characteristics(self) -> list:
         return []
 
