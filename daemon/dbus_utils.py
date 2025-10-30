@@ -98,14 +98,14 @@ class PeripheralController:
         device = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
         props = dbus.Interface(device, DBUS_PROP_IFACE)
         addr = props.Get(DEVICE_IFACE, "Address")
-        name = props.Get(DEVICE_IFACE, "Name")
+        #name = props.Get(DEVICE_IFACE, "Name")
 
         for key, value in changed.items():
-            logger.info(f"🔔 Property changed: {addr} ({name}) {key} = {value}")
+            logger.info(f"🔔 Property changed: {addr} {key} = {value}")
             self.event_log.append({
                 "event": "property_changed",
                 "address": addr,
-                "name": name,
+                
                 "path": path,
                 "property": key,
                 "value": value,
@@ -115,7 +115,7 @@ class PeripheralController:
         # Special handling for connect/disconnect
         if "Connected" in changed:
             if changed["Connected"]:
-                logger.info(f"✅ Device connected: {addr} ({name})")
+                logger.info(f"✅ Device connected: {addr}")
                 if interface == DEVICE_IFACE:
 
                     dev_obj = self.bus.get_object("org.bluez", path)
@@ -156,7 +156,7 @@ class PeripheralController:
                     reason = props.Get(DEVICE_IFACE, "DisconnectReason")
                 except Exception:
                     reason = "unknown"
-                logger.info(f"❌ Device disconnected: {addr} ({name}) reason={reason}")
+                logger.info(f"❌ Device disconnected: {addr} reason={reason}")
 
     def power_on_adapter(self):
         try:
@@ -355,7 +355,7 @@ class Advertisement(dbus.service.Object):
                 "LocalName": dbus.String(self.local_name),
                 "IncludeTxPower": dbus.Boolean(self.include_tx_power),
                 "Flags": dbus.Byte(0x06), # General Discoverable Mode, BR/EDR Not Supported
-                "Appearance": dbus.UInt16(963)
+                "Appearance": dbus.UInt16(960)
             }
         }
 
