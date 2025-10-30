@@ -218,7 +218,7 @@ peripheral:
           description: Boot Keyboard Input Report
           value: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
           notifying: false
-          flags: [read, notify, encrypt-read]
+          flags: [read, notify, encrypt-read, encrypt-write]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
@@ -236,7 +236,7 @@ peripheral:
           uuid: 00002a33-0000-1000-8000-00805f9b34fb
           value: [0x00,0x00,0x00]
           notifying: false
-          flags: [read, notify]
+          flags: [read, notify, encrypt-read]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
