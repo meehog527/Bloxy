@@ -36,7 +36,7 @@ class HIDService(ServiceInterface):
         return self.primary
 
     @dbus_property(access=PropertyAccess.READ)
-    def Characteristics(self) -> list:
+    def Characteristics(self) -> 'ao': #type: ignore
         return []
 
 async def main():
