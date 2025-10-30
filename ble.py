@@ -114,7 +114,7 @@ class HIDService(dbus.service.Object):
         elif prop == 'Primary':
             return dbus.Boolean(True)
         elif prop == 'Characteristics':
-            return dbus.Array([], signature='o')
+            return dbus.Array([self.input_char.path], signature='o')
         raise dbus.exceptions.DBusException('Unknown property')
 
     @dbus.service.method(DBUS_PROPS_IFACE, in_signature='s', out_signature='a{sv}')
@@ -122,7 +122,7 @@ class HIDService(dbus.service.Object):
         return {
             'UUID': dbus.String('1812'),
             'Primary': dbus.Boolean(True),
-            'Characteristics': dbus.Array([], signature='o')
+            'Characteristics': dbus.Array([self.input_char.path], signature='o')
         }
 
     @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
@@ -151,8 +151,6 @@ class Advertisement(dbus.service.Object):
     @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
     def Introspect(self):
         return ''
-
-import dbus.service
 
 class InputReportCharacteristic(dbus.service.Object):
     def __init__(self, bus, index, service_path):
