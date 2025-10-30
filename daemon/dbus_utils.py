@@ -149,9 +149,6 @@ class PeripheralController:
                                     mouse_char = ch
                     except Exception as e:
                             logger.exception("Error sending dummy report: %s", e)
-                
-                GLib.timeout_add_seconds(5, send_dummy_report)
-
 
             else:
                 reason = None
