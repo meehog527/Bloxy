@@ -70,10 +70,11 @@ class BLEPeripheral:
     def register_gatt(self):
         service = HIDService(self.bus, 0)
         gatt_manager = dbus.Interface(
-            self.bus.get_object(BLUEZ_SERVICE_NAME, ADAPTER_PATH),
-            GATT_MANAGER_IFACE
+            self.bus.get_object(BLUEZ_SERVICE_NAME, ADAPTER_PATH), GATT_MANAGER_IFACE
         )
-        gatt_manager.RegisterApplication(service.path, {},
+        
+        app = GattApplication(self.bus, service)
+        gatt_manager.RegisterApplication(app.path, {},
             reply_handler=lambda: print("✅ GATT service registered"),
             error_handler=lambda e: print(f"❌ GATT registration failed: {e}")
         )
@@ -95,10 +96,6 @@ class BLEPeripheral:
         self.advertise()
         print("🚀 BLE HID Keyboard is running. Waiting for connections...")
         GLib.MainLoop().run()
-
-
-
-import dbus.service
 
 class HIDService(dbus.service.Object):
     def __init__(self, bus, index):
@@ -194,6 +191,29 @@ class InputReportCharacteristic(dbus.service.Object):
     @dbus.service.signal(DBUS_PROPS_IFACE, signature='sa{sv}as')
     def PropertiesChanged(self, interface, changed, invalidated):
         pass
+
+class GattApplication(dbus.service.Object):
+    def __init__(self, bus, service):
+        self.path = APP_BASE
+        self.bus = bus
+        self.service = service
+        dbus.service.Object.__init__(self, bus, self.path)
+
+    @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
+    def Introspect(self):
+        return f'''
+        <node>
+            <node name="{self.service.path[len(self.path)+1:]}" />
+        </node>
+        '''
+
+    @dbus.service.method(DBUS_PROPS_IFACE, in_signature='ss', out_signature='v')
+    def Get(self, interface, prop):
+        raise dbus.exceptions.DBusException('org.freedesktop.DBus.Error.UnknownProperty')
+
+    @dbus.service.method(DBUS_PROPS_IFACE, in_signature='s', out_signature='a{sv}')
+    def GetAll(self, interface):
+        return {}
 
 if __name__ == '__main__':
     peripheral = BLEPeripheral()
