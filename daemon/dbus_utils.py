@@ -123,7 +123,16 @@ class PeripheralController:
 
                     # Call Pair() on the device
                     dev_iface = dbus.Interface(dev_obj, "org.bluez.Device1")
-                    dev_iface.Pair()
+                    paired = dev_props.Get("org.bluez.Device1", "Paired")
+                    if not paired:
+                        try:
+                            print("[*] Not paired yet, calling Pair()")
+                            dev_iface.Pair()
+                        except dbus.exceptions.DBusException as e:
+                            print(f"[!] Pair() failed: {e}")
+                    else:
+                        print("[*] Device already paired, skipping Pair()")
+
 
 
 
