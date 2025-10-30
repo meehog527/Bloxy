@@ -26,19 +26,18 @@ class HIDService(ServiceInterface):
         self.path = f'{APP_SERVICE_PATH}{index}'
         self.uuid = HID_SERVICE_UUID
         self.primary = True
-
-    @dbus_property(access=PropertyAccess.READ, signature='s')
-    def UUID(self):
+    
+    @dbus_property(access=PropertyAccess.READ)
+    def UUID(self) -> 's': #type: ignore
         return self.uuid
 
-    @dbus_property(access=PropertyAccess.READ, signature='b')
-    def Primary(self):
+    @dbus_property(access=PropertyAccess.READ)
+    def Primary(self) -> 'b': #type: ignore
         return self.primary
 
-    @dbus_property(access=PropertyAccess.READ, signature='ao')
-    def Characteristics(self):
+    @dbus_property(access=PropertyAccess.READ)
+    def Characteristics(self) -> list:
         return []
-
 
 async def main():
     bus = await MessageBus(system=True).connect()
