@@ -352,3 +352,10 @@ peripheral:
           notifying: false
           flags: [read]
           descriptors: []
+        - name: PnP ID
+          uuid: 00002a50-0000-1000-8000-00805f9b34fb
+          description: Plug and Play ID characteristic
+          value: [0x01, 0xFF, 0xFF, 0x34, 0x12, 0x00, 0x01]
+          notifying: false
+          flags: [read]
+          descriptors: []
