@@ -78,6 +78,16 @@ class PeripheralController:
         self.config = config
         self.event_log = [] 
         
+        self.bus.add_signal_receiver(
+            self.device_properties_changed,
+            dbus_interface="org.freedesktop.DBus.Properties",
+            signal_name="PropertiesChanged",
+            arg0="org.bluez.Device1",
+            path_keyword="path"
+        )
+
+        
+        
     def device_properties_changed(self, interface, changed, invalidated, path):
         """Handle connect/disconnect events with metadata."""
         if "Connected" in changed:
