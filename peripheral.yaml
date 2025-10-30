@@ -219,7 +219,6 @@ peripheral:
           notifying: false
           flags: [write-without-response]
           descriptors: []
-        # ---------------- Keyboard Input Report (Report ID 1) ----------------
         - name: HID Report - Input (Keyboard)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
@@ -234,7 +233,7 @@ peripheral:
             - 0x00  # Keycode 5
             - 0x00  # Keycode 6
           notifying: false
-          flags: [read, notify, encrypt-read, encrypt-write]
+          flags: [read, notify]
 
           descriptors:
             - name: Report Reference Descriptor
@@ -247,8 +246,6 @@ peripheral:
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
-
-        # ---------------- Mouse Input Report (Report ID 2) ----------------
         - name: HID Report - Input (Mouse)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)
@@ -258,7 +255,7 @@ peripheral:
             - 0x00  # X delta
             - 0x00  # Y delta
           notifying: false
-          flags: [read, notify, encrypt-read, encrypt-write]
+          flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
@@ -304,7 +301,7 @@ peripheral:
           uuid: 00002a33-0000-1000-8000-00805f9b34fb
           value: [0x00,0x00,0x00]
           notifying: false
-          flags: [read, notify, encrypt-read]
+          flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb

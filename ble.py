@@ -185,5 +185,9 @@ class Advertisement(dbus.service.Object):
         return ''
 
 if __name__ == '__main__':
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    bus = dbus.SystemBus()
+
+
     peripheral = BLEPeripheral()
     peripheral.run()
