@@ -115,19 +115,16 @@ class PeripheralController:
                 logger.info(f"✅ Device connected: {addr} ({name})")
                 if interface == DEVICE_IFACE:
 
-                    print(f"[+] Device connected: {path}")
+                    dev_obj = self.bus.get_object("org.bluez", path)
+                    dev_props = dbus.Interface(dev_obj, "org.freedesktop.DBus.Properties")
 
-                    dev = self.bus.get(BLUEZ_SERVICE_NAME, path)
+                    # Example: set Trusted = True
+                    dev_props.Set("org.bluez.Device1", "Trusted", dbus.Boolean(True))
 
-                    # Mark device trusted so BlueZ will initiate pairing
-                    dev.Trusted = True
+                    # Call Pair() on the device
+                    dev_iface = dbus.Interface(dev_obj, "org.bluez.Device1")
+                    dev_iface.Pair()
 
-                    try:
-                        # Trigger pairing immediately
-                        dev.Pair()
-                        print("[*] Pairing triggered (will send Security Request with AuthReq=0x09)")
-                    except Exception as e:
-                        print(f"[!] Pairing failed: {e}")
 
 
             else:
