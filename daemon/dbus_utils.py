@@ -86,46 +86,41 @@ class PeripheralController:
             path_keyword="path"
         )
 
-        
-        
     def device_properties_changed(self, interface, changed, invalidated, path):
-        """Handle connect/disconnect events with metadata."""
-        if "Connected" in changed:
-            connected = changed["Connected"]
-            device = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
-            props = dbus.Interface(device, DBUS_PROP_IFACE)
-            addr = props.Get("org.bluez.Device1", "Address")
-            name = props.Get("org.bluez.Device1", "Name")
+        """Log all property changes for org.bluez.Device1 objects."""
+        if interface != "org.bluez.Device1":
+            return
 
-            if connected:
-                logger.info(f"🔗 Device connected: {addr} ({name}) at {path}")
-                self.event_log.append({
-                    "event": "connected",
-                    "address": addr,
-                    "name": name,
-                    "path": path,
-                    "timestamp": time.time()
-                })
+        device = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
+        props = dbus.Interface(device, DBUS_PROP_IFACE)
+        addr = props.Get("org.bluez.Device1", "Address")
+        name = props.Get("org.bluez.Device1", "Name")
+
+        for key, value in changed.items():
+            logger.info(f"🔔 Property changed: {addr} ({name}) {key} = {value}")
+            self.event_log.append({
+                "event": "property_changed",
+                "address": addr,
+                "name": name,
+                "path": path,
+                "property": key,
+                "value": value,
+                "timestamp": time.time()
+            })
+
+        # Special handling for connect/disconnect
+        if "Connected" in changed:
+            if changed["Connected"]:
+                logger.info(f"✅ Device connected: {addr} ({name})")
             else:
-                # Try to get disconnect reason if supported
                 reason = None
                 try:
-                    reason_code = props.Get("org.bluez.Device1", "DisconnectReason")
-                    reason_str = HCI_DISCONNECT_REASONS.get(int(reason_code), f"Unknown (0x{int(reason_code):02X})")
+                    reason = props.Get("org.bluez.Device1", "DisconnectReason")
                 except Exception:
-                    reason_str = "Unavailable"
+                    reason = "unknown"
+                logger.info(f"❌ Device disconnected: {addr} ({name}) reason={reason}")
 
 
-                logger.info(f"❌ Device disconnected: {addr} ({name}) reason={reason_str}")
-                self.event_log.append({
-                    "event": "disconnected",
-                    "address": addr,
-                    "name": name,
-                    "path": path,
-                    "reason": reason,
-                    "timestamp": time.time()
-                })
-        
 
     def power_on_adapter(self):
         try:
