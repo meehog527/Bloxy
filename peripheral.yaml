@@ -166,7 +166,8 @@ peripheral:
             - 0x00  # Keycode 5
             - 0x00  # Keycode 6
           notifying: false
-          flags: [read, notify]
+          flags: [read, notify, encrypt-read, encrypt-write]
+
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
@@ -189,7 +190,7 @@ peripheral:
             - 0x00  # X delta
             - 0x00  # Y delta
           notifying: false
-          flags: [read, notify]
+          flags: [read, notify, encrypt-read, encrypt-write]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
@@ -206,7 +207,7 @@ peripheral:
           description: HID Report - Output (Keyboard LEDs)
           value: [0x00]
           notifying: false
-          flags: [read, write]
+          flags: [read, write, encrypt-read, encrypt-write]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
@@ -217,7 +218,7 @@ peripheral:
           description: Boot Keyboard Input Report
           value: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
           notifying: false
-          flags: [read, notify]
+          flags: [read, notify, encrypt-read]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
@@ -228,7 +229,7 @@ peripheral:
           description: Boot Keyboard Output Report
           value: [0x00]
           notifying: false
-          flags: [read, write, write-without-response]
+          flags: [read, write, write-without-response, encrypt-read, encrypt-write]
           descriptors: []
         - name: Boot Mouse Input Report
           description: Boot Mouse Input Report
