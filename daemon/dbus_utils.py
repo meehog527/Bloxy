@@ -121,8 +121,16 @@ class PeripheralController:
                     dev_obj = self.bus.get_object("org.bluez", path)
                     dev_props = dbus.Interface(dev_obj, DBUS_PROP_IFACE)
 
-                    # Example: set Trusted = True
-                    dev_props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
+                    # Mark Trusted and AutoConnect for resilience
+                    try: 
+                        props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
+                        logger.info(f"✅ Device trusted: {addr}")
+                    except: pass
+                    try: 
+                        props.Set(DEVICE_IFACE, "AutoConnect", dbus.Boolean(True))
+                        logger.info(f"✅ Device auto-connect: {addr}")
+                    except: pass
+
 
                     # Call Pair() on the device
                     dev_iface = dbus.Interface(dev_obj, DEVICE_IFACE)
