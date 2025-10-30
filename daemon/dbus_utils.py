@@ -101,8 +101,8 @@ class PeripheralController:
         #name = props.Get(DEVICE_IFACE, "Name")
 
         for key, value in changed.items():
-            logger.info(f"🔔 Property changed: {addr} {key} = {value}")
-            self.event_log.append({
+            #logger.info(f"🔔 Property changed: {addr} {key} = {value}")
+            log = {
                 "event": "property_changed",
                 "address": addr,
                 
@@ -110,7 +110,9 @@ class PeripheralController:
                 "property": key,
                 "value": value,
                 "timestamp": time.time()
-            })
+            }
+            logger.info(f"🔔 Property changed: {log}")
+            self.event_log.append(log)
 
         # Special handling for connect/disconnect
         if "Connected" in changed:
