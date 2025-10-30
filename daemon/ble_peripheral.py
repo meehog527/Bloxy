@@ -121,7 +121,6 @@ class HIDCharacteristic(GattObject):
         # Otherwise, force to int
         return dbus.Byte(int(v) & 0xFF)
 
-
     def get_property_map(self):
         # Keep only the properties BlueZ expects here; expose Value via ReadValue/WriteValue
         return {

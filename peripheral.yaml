@@ -4,7 +4,7 @@
 
 peripheral:
   localName: Bloxy
-  appearance: 963  # Mouse/Keyboard Combo.  
+  appearance: 960  # Mouse/Keyboard Combo.  
   services:
     - name: HID service
       uuid: 00001812-0000-1000-8000-00805f9b34fb
