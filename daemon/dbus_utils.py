@@ -9,7 +9,7 @@ import time
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
     HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, AGENT_PATH, ADAPTER_PATH,
-    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE
+    BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE, HCI_DISCONNECT_REASONS
 )
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -76,6 +76,46 @@ class PeripheralController:
         self.agent = Agent(bus)
         self.is_on = False
         self.config = config
+        self.event_log = [] 
+        
+    def device_properties_changed(self, interface, changed, invalidated, path):
+        """Handle connect/disconnect events with metadata."""
+        if "Connected" in changed:
+            connected = changed["Connected"]
+            device = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
+            props = dbus.Interface(device, DBUS_PROP_IFACE)
+            addr = props.Get("org.bluez.Device1", "Address")
+            name = props.Get("org.bluez.Device1", "Name")
+
+            if connected:
+                logger.info(f"🔗 Device connected: {addr} ({name}) at {path}")
+                self.event_log.append({
+                    "event": "connected",
+                    "address": addr,
+                    "name": name,
+                    "path": path,
+                    "timestamp": time.time()
+                })
+            else:
+                # Try to get disconnect reason if supported
+                reason = None
+                try:
+                    reason_code = props.Get("org.bluez.Device1", "DisconnectReason")
+                    reason_str = HCI_DISCONNECT_REASONS.get(int(reason_code), f"Unknown (0x{int(reason_code):02X})")
+                except Exception:
+                    reason_str = "Unavailable"
+
+
+                logger.info(f"❌ Device disconnected: {addr} ({name}) reason={reason_str}")
+                self.event_log.append({
+                    "event": "disconnected",
+                    "address": addr,
+                    "name": name,
+                    "path": path,
+                    "reason": reason,
+                    "timestamp": time.time()
+                })
+        
 
     def power_on_adapter(self):
         try:

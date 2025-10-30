@@ -44,3 +44,25 @@ DAEMON_OBJ_PATH    = "/org/example/HIDPeripheral/daemon"
 # ================================
 LE_ADVERTISING_MANAGER_IFACE = "org.bluez.LEAdvertisingManager1"
 LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"
+
+HCI_DISCONNECT_REASONS = {
+    0x00: "Success",
+    0x01: "Unknown HCI Command",
+    0x02: "Unknown Connection Identifier",
+    0x03: "Hardware Failure",
+    0x04: "Page Timeout",
+    0x05: "Authentication Failure",
+    0x06: "PIN or Key Missing",
+    0x07: "Memory Capacity Exceeded",
+    0x08: "Connection Timeout",
+    0x09: "Connection Limit Exceeded",
+    0x0C: "Command Disallowed",
+    0x13: "Remote User Terminated Connection",
+    0x14: "Remote Device Terminated Connection (Low Resources)",
+    0x15: "Remote Device Terminated Connection (Power Off)",
+    0x16: "Connection Terminated by Local Host",
+    0x1A: "Unsupported Remote Feature",
+    0x1F: "Unspecified Error",
+    0x29: "Pairing With Unit Key Not Supported",
+    0x3B: "Unacceptable Connection Parameters",
+}
