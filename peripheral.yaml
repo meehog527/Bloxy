@@ -215,7 +215,7 @@ peripheral:
           uuid: 00002a4c-0000-1000-8000-00805f9b34fb
           description: HID Control Point characteristic (used to suspend/resume)
           value: 
-            - 0x00
+            - 0x01
           notifying: false
           flags: [write-without-response]
           descriptors: []
