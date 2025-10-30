@@ -206,7 +206,7 @@ class GattApplication(dbus.service.Object):
         self.bus = bus
         self.service = service
         dbus.service.Object.__init__(self, bus, self.path)
-        dbus.service.BusName(GATT_APP_IFACE, bus)
+        
 
 
     @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
