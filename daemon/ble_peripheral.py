@@ -106,7 +106,7 @@ class HIDCharacteristic(GattObject):
         for i, desc_cfg in enumerate(config.get('descriptors', [])):
             self.descriptors.append(HIDDescriptor(bus, i, self, desc_cfg))
             
-    def parse_byte(v):
+    def parse_byte(self, v):
         # If it's already an int, just mask it
         if isinstance(v, int):
             return dbus.Byte(v & 0xFF)
