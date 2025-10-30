@@ -241,6 +241,40 @@ peripheral:
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+    - name: GAP Service
+      uuid: 00001800-0000-1000-8000-00805f9b34fb
+      type: primary
+      characteristics:
+        - name: Device Name
+          notifying: false
+          uuid: 00002a00-0000-1000-8000-00805f9b34fb
+          value:
+            - 0x42 # 'B'
+            - 0x6C # 'l'
+            - 0x6F # 'o'
+            - 0x78 # 'x'
+            - 0x79 # 'y'
+          flags: [read]
+        - name: Appearance
+          notifying: false
+          uuid: 00002a01-0000-1000-8000-00805f9b34fb
+          value:
+            - 0xC3
+            - 0x03   # 0x03C3 = 963 (Mouse/Keyboard Combo)
+          flags: [read]
+        - name: Peripheral Preferred Connection Parameters
+          uuid: 00002a04-0000-1000-8000-00805f9b34fb
+          value:
+            - 0x06 # min interval (7.5ms)
+            - 0x00
+            - 0x80 # max interval (100ms)
+            - 0x00
+            - 0x00 # latency
+            - 0x00
+            - 0xE8 # supervision timeout (1000ms)
+            - 0x03
+          flags: [read]
+    
     - name: Battery Service
       uuid: 0000180f-0000-1000-8000-00805f9b34fb
       description: Battery Service
@@ -349,20 +383,6 @@ peripheral:
             - 0x9A
             - 0xBC
             - 0xDE
-          notifying: false
-          flags: [read]
-          descriptors: []
-        - name: PnP ID
-          uuid: 00002a50-0000-1000-8000-00805f9b34fb
-          description: PnP ID characteristic
-          value:
-            - 0x01 # Vendor ID Source (1 = Bluetooth SIG)
-            - 0x34 # Vendor ID LSB
-            - 0x12 # Vendor ID MSB
-            - 0x78 # Product ID LSB
-            - 0x56 # Product ID MSB
-            - 0x00 # Product Version LSB
-            - 0x01 # Product Version MSB
           notifying: false
           flags: [read]
           descriptors: []
