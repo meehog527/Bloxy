@@ -125,7 +125,12 @@ class HIDService(dbus.service.Object):
 
     @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
     def Introspect(self):
-        return ''
+            return f'''
+            <node>
+                <node name="{self.service.path[len(self.path)+1:]}" />
+            </node>
+            '''
+
 
 class Advertisement(dbus.service.Object):
     def __init__(self, bus):
