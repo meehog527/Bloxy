@@ -207,11 +207,14 @@ class GattApplication(dbus.service.Object):
 
     @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
     def Introspect(self):
+        # Extract child node name from service path
+        child_name = self.service.path[len(self.path)+1:]
         return f'''
         <node>
-            <node name="{self.service.path[len(self.path)+1:]}" />
+            <node name="{child_name}" />
         </node>
         '''
+
 
     @dbus.service.method(DBUS_PROPS_IFACE, in_signature='ss', out_signature='v')
     def Get(self, interface, prop):
