@@ -345,19 +345,21 @@ class Advertisement(dbus.service.Object):
         self.solicit_uuids = None
         self.service_data = {}
         self.include_tx_power = True
+        self.appearance = config["peripheral"].get("appearance", 960)
         super().__init__(bus, self.path)
 
     def get_properties(self):
+        # Removed unsupported "Flags" property (BlueZ rejects it)
         return {
             LE_ADVERTISEMENT_IFACE: {
-                "Type": self.ad_type,
-                "ServiceUUIDs": dbus.Array(self.service_uuids, signature="s"),
+                "Type": dbus.String(self.ad_type),
+                "ServiceUUIDs": dbus.Array([dbus.String(u) for u in self.service_uuids], signature="s"),
                 "LocalName": dbus.String(self.local_name),
                 "IncludeTxPower": dbus.Boolean(self.include_tx_power),
-                "Flags": dbus.Byte(0x06), # General Discoverable Mode, BR/EDR Not Supported
-                "Appearance": dbus.UInt16(960)
+                "Appearance": dbus.UInt16(self.appearance),
             }
         }
+
 
     def get_path(self):
         return dbus.ObjectPath(self.path)
