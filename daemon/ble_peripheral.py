@@ -96,7 +96,7 @@ class HIDCharacteristic(GattObject):
         self.uuid = config['uuid']
         self.flags = config.get('flags', [])
         raw_val = config.get('value', [])
-        self.value = [dbus.Byte(int(v) & 0xFF) for v in raw_val]
+        self.value = [dbus.Byte(self.parse_byte(v)) for v in raw_val]
         self.name = config.get('name', self.uuid)
         self.notifying = bool(config.get('notifying', False))
         self.descriptors = []
@@ -105,6 +105,22 @@ class HIDCharacteristic(GattObject):
 
         for i, desc_cfg in enumerate(config.get('descriptors', [])):
             self.descriptors.append(HIDDescriptor(bus, i, self, desc_cfg))
+            
+    def parse_byte(v):
+        # If it's already an int, just mask it
+        if isinstance(v, int):
+            return dbus.Byte(v & 0xFF)
+        # If it's a string, try to parse as hex if it looks like hex
+        if isinstance(v, str):
+            try:
+                # int(x, 16) will handle "A1", "0xA1", etc.
+                return dbus.Byte(int(v, 16) & 0xFF)
+            except ValueError:
+                # fallback: try decimal
+                return dbus.Byte(int(v) & 0xFF)
+        # Otherwise, force to int
+        return dbus.Byte(int(v) & 0xFF)
+
 
     def get_property_map(self):
         # Keep only the properties BlueZ expects here; expose Value via ReadValue/WriteValue
