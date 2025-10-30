@@ -254,16 +254,6 @@ peripheral:
           notifying: true
           flags: [read, notify]
           descriptors:
-            - name: Battery level format descriptor
-              uuid: 00002904-0000-1000-8000-00805f9b34fb
-              description: Battery Level Format Descriptor
-              value:
-                - 0x04 # Format: unsigned 8-bit integer
-                - 0x01 # Exponent: 1
-                - 0x00 # Unit: percentage
-                - 0x00 # Namespace: Bluetooth SIG Assigned Numbers
-                - 0x64 # Description: Battery level percentage
-              flags: [read]
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               description: Enables notifications or indications
