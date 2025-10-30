@@ -29,7 +29,8 @@ class Agent(dbus.service.Object):
     @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
         logger.info(f"AuthorizeService: {device} {uuid}")
-
+        return #Accept the pairing by returning normally
+    
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="s")
     def RequestPinCode(self, device):
         logger.info(f"RequestPinCode: {device}")
@@ -47,6 +48,7 @@ class Agent(dbus.service.Object):
     @dbus.service.method(AGENT_IFACE, in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
         logger.info(f"RequestConfirmation: {device} passkey={passkey}")
+        return #Accept the confirming by returning normally
 
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="")
     def RequestAuthorization(self, device):
