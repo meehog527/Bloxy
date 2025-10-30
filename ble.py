@@ -1,6 +1,7 @@
 import asyncio
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, dbus_property
+
 from dbus_next import Variant
 from dbus_next.service import PropertyAccess
 
@@ -26,17 +27,18 @@ class HIDService(ServiceInterface):
         self.uuid = HID_SERVICE_UUID
         self.primary = True
 
-    @dbus_property(access=PropertyAccess.READ)
-    def UUID(self) -> str:
+    @dbus_property(access=PropertyAccess.READ, signature='s')
+    def UUID(self):
         return self.uuid
 
-    @dbus_property(access=PropertyAccess.READ)
-    def Primary(self) -> bool:
+    @dbus_property(access=PropertyAccess.READ, signature='b')
+    def Primary(self):
         return self.primary
 
-    @dbus_property(access=PropertyAccess.READ)
-    def Characteristics(self) -> list:
+    @dbus_property(access=PropertyAccess.READ, signature='ao')
+    def Characteristics(self):
         return []
+
 
 async def main():
     bus = await MessageBus(system=True).connect()
