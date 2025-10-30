@@ -352,14 +352,6 @@ peripheral:
           notifying: false
           flags: [read]
           descriptors: []
-        - name: IEEE 11073-20601 Regulatory Certification Data List
-          uuid: 00002a2a-0000-1000-8000-00805f9b34fb
-          description: IEEE 11073-20601 Regulatory Certification Data List characteristic
-          value:
-            - 0x00
-          notifying: false
-          flags: [read]
-          descriptors: []
         - name: PnP ID
           uuid: 00002a50-0000-1000-8000-00805f9b34fb
           description: PnP ID characteristic
