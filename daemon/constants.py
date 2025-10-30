@@ -2,7 +2,13 @@
 # BlueZ Core Constants
 # ================================
 BLUEZ_SERVICE_NAME = "org.bluez"
+BLUEZ_SERVICE_PATH = "/org/bluez"
 ADAPTER_PATH       = "/org/bluez/hci0"
+ADAPTER_IFACE      = "org.bluez.Adapter1"
+AGENT_IFACE        = "org.bluez.Agent1"
+AGENT_MANAGER_IFACE= "org.bluez.AgentManager1"
+#DBUS
+
 
 # BlueZ GATT Interfaces
 GATT_MANAGER_IFACE = "org.bluez.GattManager1"
@@ -12,6 +18,7 @@ GATT_DESC_IFACE    = "org.bluez.GattDescriptor1"
 
 # Standard D-Bus Properties Interface
 DBUS_PROP_IFACE    = "org.freedesktop.DBus.Properties"
+DBUS_OBJMGR_IFACE  = "org.freedesktop.DBus.ObjectManager"
 
 
 # ================================
@@ -46,7 +53,11 @@ LE_ADVERTISING_MANAGER_IFACE = "org.bluez.LEAdvertisingManager1"
 LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"
 
 DEVICE_IFACE = "org.bluez.Device1"
+ADVERTISEMENT_PATH_BASE = "/org/example/advertisement"
 
+
+#DisplayOnly, DisplayYesNo, KeyboardOnly, NoInputNoOutput, and KeyboardDisplay
+AUTHORIZATION = "KeyboardDisplay"
 
 HCI_DISCONNECT_REASONS = {
     0x00: "Success",

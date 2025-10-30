@@ -10,7 +10,8 @@ from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
     HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, AGENT_PATH, ADAPTER_PATH,
     BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE, HCI_DISCONNECT_REASONS,
-    DEVICE_IFACE
+    DEVICE_IFACE, ADAPTER_IFACE, AGENT_IFACE, DBUS_OBJMGR_IFACE, AGENT_MANAGER_IFACE, BLUEZ_SERVICE_PATH,
+    AUTHORIZATION, ADVERTISEMENT_PATH_BASE
 )
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -21,42 +22,42 @@ class Agent(dbus.service.Object):
     def __init__(self, bus):
         super().__init__(bus, AGENT_PATH)
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
     def Release(self):
         logger.info("Release")
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
         logger.info(f"AuthorizeService: {device} {uuid}")
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="s")
+    @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="s")
     def RequestPinCode(self, device):
         logger.info(f"RequestPinCode: {device}")
         return "0000"
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="u")
+    @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="u")
     def RequestPasskey(self, device):
         logger.info(f"RequestPasskey: {device}")
         return dbus.UInt32(123456)
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="ouq", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="ouq", out_signature="")
     def DisplayPasskey(self, device, passkey, entered):
         logger.info(f"DisplayPasskey: {device} {passkey} entered: {entered}")
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="ou", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
         logger.info(f"RequestConfirmation: {device} passkey={passkey}")
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="")
     def RequestAuthorization(self, device):
         logger.info(f"RequestAuthorization: {device}")
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
     def Cancel(self):
         logger.info("Cancel called")
 
     # --- Added for KeyboardDisplay capability ---
-    @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
+    @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def DisplayPinCode(self, device, pincode):
         """
         Called when the agent needs to display a PIN code to the user.
@@ -68,8 +69,8 @@ class PeripheralController:
     def __init__(self, bus, services, config, app_path=HID_APP_PATH):
         self.bus = bus
         self.manager = dbus.Interface(
-            self.bus.get_object("org.bluez", "/"),
-            "org.freedesktop.DBus.ObjectManager"
+            self.bus.get_object(BLUEZ_SERVICE_NAME, "/"),
+            DBUS_OBJMGR_IFACE
         )
         self.services = services
         self.app_path = app_path
@@ -81,21 +82,21 @@ class PeripheralController:
         
         self.bus.add_signal_receiver(
             self.device_properties_changed,
-            dbus_interface="org.freedesktop.DBus.Properties",
+            dbus_interface=DBUS_PROP_IFACE,
             signal_name="PropertiesChanged",
-            arg0="org.bluez.Device1",
+            arg0=DEVICE_IFACE,
             path_keyword="path"
         )
 
     def device_properties_changed(self, interface, changed, invalidated, path):
         """Log all property changes for org.bluez.Device1 objects."""
-        if interface != "org.bluez.Device1":
+        if interface != DEVICE_IFACE:
             return
 
         device = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
         props = dbus.Interface(device, DBUS_PROP_IFACE)
-        addr = props.Get("org.bluez.Device1", "Address")
-        name = props.Get("org.bluez.Device1", "Name")
+        addr = props.Get(DEVICE_IFACE, "Address")
+        name = props.Get(DEVICE_IFACE, "Name")
 
         for key, value in changed.items():
             logger.info(f"🔔 Property changed: {addr} ({name}) {key} = {value}")
@@ -116,14 +117,14 @@ class PeripheralController:
                 if interface == DEVICE_IFACE:
 
                     dev_obj = self.bus.get_object("org.bluez", path)
-                    dev_props = dbus.Interface(dev_obj, "org.freedesktop.DBus.Properties")
+                    dev_props = dbus.Interface(dev_obj, DBUS_PROP_IFACE)
 
                     # Example: set Trusted = True
-                    dev_props.Set("org.bluez.Device1", "Trusted", dbus.Boolean(True))
+                    dev_props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
 
                     # Call Pair() on the device
-                    dev_iface = dbus.Interface(dev_obj, "org.bluez.Device1")
-                    paired = dev_props.Get("org.bluez.Device1", "Paired")
+                    dev_iface = dbus.Interface(dev_obj, DEVICE_IFACE)
+                    paired = dev_props.Get(DEVICE_IFACE, "Paired")
                     if not paired:
                         try:
                             print("[*] Not paired yet, calling Pair()")
@@ -132,25 +133,19 @@ class PeripheralController:
                             print(f"[!] Pair() failed: {e}")
                     else:
                         print("[*] Device already paired, skipping Pair()")
-
-
-
-
             else:
                 reason = None
                 try:
-                    reason = props.Get("org.bluez.Device1", "DisconnectReason")
+                    reason = props.Get(DEVICE_IFACE, "DisconnectReason")
                 except Exception:
                     reason = "unknown"
                 logger.info(f"❌ Device disconnected: {addr} ({name}) reason={reason}")
-
-
 
     def power_on_adapter(self):
         try:
             adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             props = dbus.Interface(adapter, DBUS_PROP_IFACE)
-            props.Set("org.bluez.Adapter1", "Powered", dbus.Boolean(True))
+            props.Set(ADAPTER_IFACE, "Powered", dbus.Boolean(True))
             logger.info("✅ Bluetooth adapter powered on.")
             return True
         except Exception as e:
@@ -161,7 +156,7 @@ class PeripheralController:
         try:
             adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             props = dbus.Interface(adapter, DBUS_PROP_IFACE)
-            props.Set("org.bluez.Adapter1", "Powered", dbus.Boolean(False))
+            props.Set(ADAPTER_IFACE, "Powered", dbus.Boolean(False))
             logger.info("✅ Bluetooth adapter powered off.")
             return True
         except Exception as e:
@@ -172,8 +167,8 @@ class PeripheralController:
         try:
             adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             props = dbus.Interface(adapter, DBUS_PROP_IFACE)
-            props.Set("org.bluez.Adapter1", "Discoverable", dbus.Boolean(True))
-            props.Set("org.bluez.Adapter1", "Pairable", dbus.Boolean(True))
+            props.Set(ADAPTER_IFACE, "Discoverable", dbus.Boolean(True))
+            props.Set(ADAPTER_IFACE, "Pairable", dbus.Boolean(True))
             logger.info("✅ Adapter set to discoverable and pairable.")
             return True
         except Exception as e:
@@ -183,10 +178,10 @@ class PeripheralController:
     def register_agent(self):
         try:
             manager = dbus.Interface(
-                self.bus.get_object(BLUEZ_SERVICE_NAME, "/org/bluez"),
-                "org.bluez.AgentManager1"
+                self.bus.get_object(BLUEZ_SERVICE_NAME, BLUEZ_SERVICE_PATH),
+                AGENT_MANAGER_IFACE
             )
-            manager.RegisterAgent(AGENT_PATH, "NoInputNoOutput")
+            manager.RegisterAgent(AGENT_PATH, AUTHORIZATION)
             manager.RequestDefaultAgent(AGENT_PATH)
             logger.info("✅ Agent registered and set as default.")
             return True
@@ -261,7 +256,7 @@ class PeripheralController:
             device_path = f"{ADAPTER_PATH}/dev_{mac_address.replace(':', '_')}"
             device = self.bus.get_object(BLUEZ_SERVICE_NAME, device_path)
             props = dbus.Interface(device, DBUS_PROP_IFACE)
-            props.Set("org.bluez.Device1", "Trusted", dbus.Boolean(True))
+            props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
             logger.info(f"✅ Device {mac_address} trusted.")
             return True
         except Exception as e:
@@ -313,8 +308,8 @@ class PeripheralController:
         connected = []
         objects = self.manager.GetManagedObjects()
         for path, ifaces in objects.items():
-            if "org.bluez.Device1" in ifaces:
-                props = ifaces["org.bluez.Device1"]
+            if DEVICE_IFACE in ifaces:
+                props = ifaces[DEVICE_IFACE]
                 if props.get("Connected", False):
                     addr = props.get("Address")
                     name = props.get("Name")
@@ -322,14 +317,9 @@ class PeripheralController:
 
         return connected
 
-import dbus
-import dbus.service
-
 class Advertisement(dbus.service.Object):
-    PATH_BASE = "/org/example/advertisement"
-
     def __init__(self, bus, index, config, advertising_type="peripheral"):
-        self.path = self.PATH_BASE + str(index)
+        self.path = ADVERTISEMENT_PATH_BASE + str(index)
         self.bus = bus
         self.ad_type = advertising_type
         self.service_uuids = [svc["uuid"] for svc in config["peripheral"]["services"]]  # HID Service UUID
@@ -355,8 +345,7 @@ class Advertisement(dbus.service.Object):
     def get_path(self):
         return dbus.ObjectPath(self.path)
 
-    @dbus.service.method(dbus.PROPERTIES_IFACE,
-                         in_signature="s", out_signature="a{sv}")
+    @dbus.service.method(dbus.PROPERTIES_IFACE, in_signature="s", out_signature="a{sv}")
     def GetAll(self, interface):
         if interface != LE_ADVERTISEMENT_IFACE:
             raise dbus.exceptions.DBusException(
