@@ -73,7 +73,7 @@ class BLEPeripheral:
             self.bus.get_object(BLUEZ_SERVICE_NAME, ADAPTER_PATH),
             GATT_MANAGER_IFACE
         )
-        gatt_manager.RegisterApplication(service, {},
+        gatt_manager.RegisterApplication(service.path, {},
             reply_handler=lambda: print("✅ GATT service registered"),
             error_handler=lambda e: print(f"❌ GATT registration failed: {e}")
         )
