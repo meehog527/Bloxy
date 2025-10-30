@@ -135,6 +135,22 @@ class PeripheralController:
                             print(f"[!] Pair() failed: {e}")
                     else:
                         print("[*] Device already paired, skipping Pair()")
+                        
+                    try:
+                        for svc in self.services:
+                            for ch in svc.characteristics:
+                                name = (ch.name or '').lower()
+                                if 'keyboard' in name and 'report' in name:
+                                    keyboard_char = ch
+                                    empty_report = [0x00] * 8
+                                    ch.update_value(empty_report)
+                                    logger.info("Sent dummy empty keyboard report")
+                                elif 'mouse' in name and 'report' in name:
+                                    mouse_char = ch
+                    except Exception as e:
+                            logger.exception("Error sending dummy report: %s", e)
+
+
             else:
                 reason = None
                 try:
