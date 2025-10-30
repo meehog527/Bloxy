@@ -3,20 +3,22 @@ import dbus.service
 import dbus.mainloop.glib
 from gi.repository import GLib
 
-BLUEZ_SERVICE_NAME = 'org.bluez'
-ADAPTER_PATH = '/org/bluez/hci0'
-ADAPTER_IFACE = 'org.bluez.Adapter1'
+BLUEZ_SERVICE_NAME  = 'org.bluez'
+ADAPTER_PATH        = '/org/bluez/hci0'
+ADAPTER_IFACE       = 'org.bluez.Adapter1'
 
-GATT_MANAGER_IFACE = 'org.bluez.GattManager1'
-GATT_CHAR = 'org.bluez.GattCharacteristic1'
+GATT_MANAGER_IFACE  = 'org.bluez.GattManager1'
+GATT_APP_IFACE      = 'org.bluez.GattApplication1'
+GATT_CHAR           = 'org.bluez.GattCharacteristic1'
+
 LE_ADVERTISING_MANAGER_IFACE = 'org.bluez.LEAdvertisingManager1'
 
-DBUS_PROPS_IFACE = 'org.freedesktop.DBus.Properties'
-DBUS_INTRO_IFACE = 'org.freedesktop.DBus.Introspectable'
+DBUS_PROPS_IFACE    = 'org.freedesktop.DBus.Properties'
+DBUS_INTRO_IFACE    = 'org.freedesktop.DBus.Introspectable'
 
-APP_BASE = '/org/bluez/hidapp'
-APP_SERVICE_BASE = APP_BASE + 'service'
-APP_ADVERT_BASE = APP_BASE + 'advertisement'
+APP_BASE            = '/org/bluez/hidapp'
+APP_SERVICE_BASE    = APP_BASE + 'service'
+APP_ADVERT_BASE     = APP_BASE + 'advertisement'
 
 REPORT_MAP = [
     0x05, 0x01,       # Usage Page (Generic Desktop)
@@ -204,17 +206,17 @@ class GattApplication(dbus.service.Object):
         self.bus = bus
         self.service = service
         dbus.service.Object.__init__(self, bus, self.path)
+        dbus.service.BusName(GATT_APP_IFACE, bus)
+
 
     @dbus.service.method(DBUS_INTRO_IFACE, in_signature='', out_signature='s')
     def Introspect(self):
-        # Extract child node name from service path
         child_name = self.service.path[len(self.path)+1:]
         return f'''
         <node>
             <node name="{child_name}" />
         </node>
         '''
-
 
     @dbus.service.method(DBUS_PROPS_IFACE, in_signature='ss', out_signature='v')
     def Get(self, interface, prop):
@@ -223,6 +225,7 @@ class GattApplication(dbus.service.Object):
     @dbus.service.method(DBUS_PROPS_IFACE, in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface):
         return {}
+
 
 if __name__ == '__main__':
     peripheral = BLEPeripheral()
