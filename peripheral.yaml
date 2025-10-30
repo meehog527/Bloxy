@@ -241,47 +241,7 @@ peripheral:
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
-    - name: GAP Service
-      description: gap
-      uuid: 00001800-0000-1000-8000-00805f9b34fb
-      type: primary
-      characteristics:
-        - name: Device Name
-          description: device name
-          notifying: false
-          uuid: 00002a00-0000-1000-8000-00805f9b34fb
-          value:
-            - 0x42 # 'B'
-            - 0x6C # 'l'
-            - 0x6F # 'o'
-            - 0x78 # 'x'
-            - 0x79 # 'y'
-          flags: [read]
-          descriptors: []
-        - name: Appearance
-          description: apperance
-          notifying: false
-          uuid: 00002a01-0000-1000-8000-00805f9b34fb
-          value:
-            - 0xC3
-            - 0x03   # 0x03C3 = 963 (Mouse/Keyboard Combo)
-          flags: [read]
-          descriptors: []
-        - name: Peripheral Preferred Connection Parameters
-          description: ppcp
-          uuid: 00002a04-0000-1000-8000-00805f9b34fb
-          notifying: false
-          value:
-            - 0x06 # min interval (7.5ms)
-            - 0x00
-            - 0x80 # max interval (100ms)
-            - 0x00
-            - 0x00 # latency
-            - 0x00
-            - 0xE8 # supervision timeout (1000ms)
-            - 0x03
-          flags: [read]
-          descriptors: []
+
     
     - name: Battery Service
       uuid: 0000180f-0000-1000-8000-00805f9b34fb
