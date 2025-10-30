@@ -165,7 +165,7 @@ peripheral:
             - 0x00  # Keycode 4
             - 0x00  # Keycode 5
             - 0x00  # Keycode 6
-          notifying: true
+          notifying: false
           flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
@@ -188,7 +188,7 @@ peripheral:
             - 0x00  # Buttons
             - 0x00  # X delta
             - 0x00  # Y delta
-          notifying: true
+          notifying: false
           flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
@@ -216,7 +216,7 @@ peripheral:
           uuid: 00002a22-0000-1000-8000-00805f9b34fb
           description: Boot Keyboard Input Report
           value: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
-          notifying: true
+          notifying: false
           flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
@@ -234,7 +234,7 @@ peripheral:
           description: Boot Mouse Input Report
           uuid: 00002a33-0000-1000-8000-00805f9b34fb
           value: [0x00,0x00,0x00]
-          notifying: true
+          notifying: false
           flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
@@ -251,7 +251,7 @@ peripheral:
           description: Battery Level characteristic
           value:
             - 0x64 # Battery level at 100%
-          notifying: true
+          notifying: false
           flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
