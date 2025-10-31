@@ -3,7 +3,6 @@
 import dbus
 import dbus.service
 import logging
-import colorlog
 from gi.repository import GLib
 import yaml
 
@@ -13,15 +12,9 @@ from constants import (
     LOG_LEVEL, LOG_FORMAT
 )
 
-def build_log(name):
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.ColoredFormatter(LOG_FORMAT))
-    logger = colorlog.getLogger(name)
-    logger.addHandler(handler)
-    logger.setLevel(LOG_LEVEL)
-    return logger
+logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
-logger = build_log(__name__)
 
 class GattObject(dbus.service.Object):
     """
@@ -33,7 +26,7 @@ class GattObject(dbus.service.Object):
 
     def __init__(self, bus, path):
         # --- Internal state ---
-        self.logger = build_log(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, path)
         self.path = path
 
@@ -131,9 +124,7 @@ class HIDDescriptor(GattObject):
     dbus_interface = GATT_DESC_IFACE
 
     def __init__(self, bus, index, char, config):
-        self.logger = build_log(f"{__name__}.{self.__class__.__name__}")
-
-        # --- Internal state ---        
+        # --- Internal state ---
         self.char = char
         self.uuid = str(config['uuid'])
         self.flags = [str(f) for f in config.get('flags', [])]
@@ -142,6 +133,7 @@ class HIDDescriptor(GattObject):
 
         # Deterministic path under parent characteristic
         path = f'{char.path}/desc{index}'
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, path)
 
         self.logger.debug(
@@ -221,8 +213,6 @@ class HIDCharacteristic(GattObject):
     dbus_interface = GATT_CHRC_IFACE
 
     def __init__(self, bus, index, service, config):
-        self.logger = build_log(f"{__name__}.{self.__class__.__name__}")
-
         # --- Internal state ---
         self.service = service
         self.uuid = str(config['uuid'])
@@ -235,6 +225,7 @@ class HIDCharacteristic(GattObject):
 
         # Deterministic path under parent service
         path = f'{service.path}/char{index}'
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, path)
 
         # Build child descriptors
@@ -351,8 +342,6 @@ class HIDService(GattObject):
     dbus_interface = GATT_SERVICE_IFACE
 
     def __init__(self, bus, index, config):
-        self.logger = build_log(f"{__name__}.{self.__class__.__name__}")
-
         # --- Internal state ---
         self.uuid = str(config['uuid'])
         self.primary = bool(config.get('type', 'primary') == 'primary')
@@ -363,6 +352,7 @@ class HIDService(GattObject):
 
         # Deterministic service path under the app root
         self.path = f"{HID_SERVICE_BASE}{index}"
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, self.path)
 
         # Build child characteristics
@@ -435,11 +425,10 @@ class HIDApplication(dbus.service.Object):
     """
 
     def __init__(self, bus, services, path=HID_APP_PATH):
-        self.logger = build_log(f"{__name__}.{self.__class__.__name__}")
-
         # --- Internal state ---
         self.path = path
         self.services = services
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, self.path)
 
         self.logger.debug(
