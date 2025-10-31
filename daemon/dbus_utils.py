@@ -363,7 +363,7 @@ class PeripheralController:
     # GATT application
     # ----------------------------------------------------------------------
 
-    def register_gatt_application(self):
+    def register_gatt_application_and_advertisement(self):
         self.logger.debug("=== Register GATT Application ===")
         self.logger.debug("Adapter path: %s", self.adapter_path)
         self.logger.debug("App path: %s", self.app_path)
@@ -491,12 +491,8 @@ class PeripheralController:
             self.logger.error("❌ Could not register agent.")
             return False
 
-        if not self.register_gatt_application():
+        if not self.register_gatt_application_and_advertisement():
             self.logger.error("❌ Peripheral failed to start.")
-            return False
-
-        if not self.register_advertisement():
-            self.logger.error("❌ Could not register advertisement.")
             return False
 
         self.is_on = True
