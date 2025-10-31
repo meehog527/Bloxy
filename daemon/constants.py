@@ -1,3 +1,11 @@
+import logging
+
+# ================================
+# Logging
+# ================================
+LOG_LEVEL = logging.DEBUG
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s"
+
 # ================================
 # BlueZ Core Constants
 # ================================
