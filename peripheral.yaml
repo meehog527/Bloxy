@@ -1,10 +1,8 @@
 #peripheral.yaml
 
-#See https://www.bluetooth.com/specifications/assigned-numbers/
-
 peripheral:
   localName: Bloxy
-  appearance: 960  # Mouse/Keyboard Combo. 
+  appearance: 960  # Mouse/Keyboard Combo
   services:
     - name: HID service
       uuid: 00001812-0000-1000-8000-00805f9b34fb
@@ -14,22 +12,23 @@ peripheral:
         - name: HID Information
           uuid: 00002a4a-0000-1000-8000-00805f9b34fb
           description: HID Information (Version, Country Code, Flags)
-          value: 
+          value:
             - 0x11 # HID Minor Version 11
             - 0x01 # HID Major Version 1
             - 0x00 # Country Code 0 (not localized)
-            - 0x03 # Flags 3 (normally used)
+            - 0x07 # Flags: RemoteWake + NormallyConnectable + BootProtocol
           notifying: false
           flags: [read]
           descriptors: []
+
         - name: HID Report Map
           uuid: 00002a4b-0000-1000-8000-00805f9b34fb
           description: HID Report Map characteristic (defines HID structure)
           value:
-            # UsagePage(Generic Desktop)
+            # ---------------- Keyboard (Report ID 1) ----------------
+            # UsagePage(Generic Desktop), Usage(Keyboard)
             - 05
             - 01
-            # Usage(Keyboard)
             - 09
             - 06
             # Collection(Application)
@@ -47,16 +46,14 @@ peripheral:
             #   UsageMax(Keyboard Right GUI)
             - 29
             - E7
-            #   LogicalMin(0)
+            #   LogicalMin(0), LogicalMax(1)
             - 15
             - 00
-            #   LogicalMax(1)
             - 25
             - 01
-            #   ReportCount(8) - 8 modifier bits
+            #   ReportCount(8), ReportSize(1) -> 8 modifier bits
             - 95
             - 08
-            #   ReportSize(1)
             - 75
             - 01
             #   Input(Data,Var,Abs)
@@ -70,65 +67,124 @@ peripheral:
             #   Input(Const,Array,Abs) - reserved
             - 81
             - 01
-            #   UsageMin(ErrorRollOver)
+            #   UsageMin(ErrorRollOver), UsageMax(Keyboard Application)
             - 19
             - 01
-            #   UsageMax(Keyboard Application)
             - 29
             - 65
-            #   LogicalMin(1)
+            #   LogicalMin(1), LogicalMax(101)
             - 15
             - 01
-            #   LogicalMax(101)
             - 25
             - 65
-            #   ReportCount(6) - 6 keycodes
+            #   ReportCount(6), ReportSize(8) -> 6 keycodes
             - 95
             - 06
-            #   ReportSize(8)
             - 75
             - 08
             #   Input(Data,Array,Abs)
             - 81
             - 00
+            #   LEDs (Output report for Num/Caps/Scroll/Kana/Compose)
             #   UsagePage(LEDs)
             - 05
             - 08
-            #   UsageMin(Num Lock)
+            #   UsageMin(Num Lock), UsageMax(Kana)
             - 19
             - 01
-            #   UsageMax(Kana)
             - 29
             - 05
-            #   LogicalMin(0)
+            #   LogicalMin(0), LogicalMax(1)
             - 15
             - 00
-            #   LogicalMax(1)
             - 25
             - 01
-            #   ReportCount(5)
+            #   ReportCount(5), ReportSize(1)
             - 95
             - 05
-            #   ReportSize(1)
             - 75
             - 01
             #   Output(Data,Var,Abs)
             - 91
             - 02
-            #   ReportCount(1)
+            #   Padding: ReportCount(1), ReportSize(3), Output(Const,Var,Abs)
             - 95
             - 01
-            #   ReportSize(3)
             - 75
             - 03
-            #   Output(Const,Var,Abs) - padding
             - 91
             - 03
-            # EndCollection
+            # End Keyboard Collection
             - C0
 
-  
-
+            # ---------------- Mouse (Report ID 2) ----------------
+            # UsagePage(Generic Desktop), Usage(Mouse)
+            - 05
+            - 01
+            - 09
+            - 02
+            # Collection(Application)
+            - A1
+            - 01
+            #   ReportId(2)
+            - 85
+            - 02
+            #   Collection(Physical) - pointer
+            - A1
+            - 00
+            #     UsagePage(Button), UsageMin(1), UsageMax(3)
+            - 05
+            - 09
+            - 19
+            - 01
+            - 29
+            - 03
+            #     LogicalMin(0), LogicalMax(1)
+            - 15
+            - 00
+            - 25
+            - 01
+            #     ReportCount(3), ReportSize(1) -> 3 buttons
+            - 95
+            - 03
+            - 75
+            - 01
+            #     Input(Data,Var,Abs)
+            - 81
+            - 02
+            #     Padding: ReportCount(1), ReportSize(5), Input(Const,Var,Abs)
+            - 95
+            - 01
+            - 75
+            - 05
+            - 81
+            - 03
+            #     UsagePage(Generic Desktop), Usage(X), Usage(Y), Usage(Wheel)
+            - 05
+            - 01
+            - 09
+            - 30
+            - 09
+            - 31
+            - 09
+            - 38
+            #     LogicalMin(-127), LogicalMax(127)
+            - 15
+            - 81
+            - 25
+            - 7F
+            #     ReportCount(3), ReportSize(8) -> X,Y,Wheel
+            - 95
+            - 03
+            - 75
+            - 08
+            #     Input(Data,Var,Rel)
+            - 81
+            - 06
+            #   End Physical
+            - C0
+            # End Mouse Collection
+            - C0
           notifying: false
           flags: [read]
           descriptors:
@@ -139,28 +195,29 @@ peripheral:
                 - 0x0F # UUID 0x180F (Battery Service)
                 - 0x18
               flags: [read]
+
         - name: HID Protocol Mode
           uuid: 00002a4e-0000-1000-8000-00805f9b34fb
           description: Protocol Mode characteristic (Report Mode = 1)
-          value: 
-            - 0x01
+          value: [0x01]
           notifying: false
           flags: [read, write-without-response]
           descriptors: []
+
         - name: HID Control Point
           uuid: 00002a4c-0000-1000-8000-00805f9b34fb
           description: HID Control Point characteristic (used to suspend/resume)
-          value: 
-            - 0x01
+          value: [0x01]
           notifying: false
           flags: [write-without-response]
           descriptors: []
+
         - name: HID Report - Input (Keyboard)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Keyboard)
           value:
-            - 0x01
-            - 0x00  # Modifier keys
+            - 0x01  # Report ID 1
+            - 0x00  # Modifiers
             - 0x00  # Reserved
             - 0x00  # Keycode 1
             - 0x00  # Keycode 2
@@ -169,80 +226,83 @@ peripheral:
             - 0x00  # Keycode 5
             - 0x00  # Keycode 6
           notifying: false
-          flags: [read, notify, encrypt-notify]
-
+          # Temporarily remove encryption to validate Windows behavior
+          flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
-              value:
-                - 0x01  # Report ID 1
-                - 0x01  # Input Report
+              value: [0x01, 0x01]  # Report ID 1, Input
               flags: [read]
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+
         - name: HID Report - Input (Mouse)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Input (Mouse)
           value:
-            - 0x02
-            - 0x00  # Buttons
+            - 0x02  # Report ID 2
+            - 0x00  # Buttons (3 bits used)
             - 0x00  # X delta
             - 0x00  # Y delta
+            - 0x00  # Wheel
           notifying: false
-          flags: [read, notify, encrypt-notify]
+          flags: [read, notify]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
-              value:
-                - 0x02  # Report ID 2
-                - 0x01  # Input Report
+              value: [0x02, 0x01]  # Report ID 2, Input
               flags: [read]
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+
         - name: HID Report - Output (Keyboard LEDs)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
           description: HID Report - Output (Keyboard LEDs)
-          value: [0x00]
+          value: [0x01, 0x00]  # Report ID 1, LEDs bitfield (1 byte)
           notifying: false
-          flags: [read, write]
+          flags: [read, write, write-without-response]
           descriptors:
             - name: Report Reference Descriptor
               uuid: 00002908-0000-1000-8000-00805f9b34fb
               value: [0x01, 0x02]   # Report ID 1, Output
               flags: [read]
+
         - name: Boot Keyboard Input Report
           uuid: 00002a22-0000-1000-8000-00805f9b34fb
-          description: Boot Keyboard Input Report
+          description: Boot Keyboard Input Report (8 bytes)
           value: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]
           notifying: false
-          flags: [read, notify, encrypt-notify]
+          flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+
         - name: Boot Keyboard Output Report
           uuid: 00002a32-0000-1000-8000-00805f9b34fb
-          description: Boot Keyboard Output Report
+          description: Boot Keyboard Output Report (1 byte LEDs)
           value: [0x00]
           notifying: false
           flags: [read, write, write-without-response]
           descriptors: []
+
         - name: Boot Mouse Input Report
-          description: Boot Mouse Input Report
           uuid: 00002a33-0000-1000-8000-00805f9b34fb
+          description: Boot Mouse Input Report (3 axes + buttons simplified)
           value: [0x00,0x00,0x00]
           notifying: false
-          flags: [read, notify, encrypt-notify]
+          flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               value: [0x00, 0x00]
               flags: [read, write]
+
     - name: Battery Service
       uuid: 0000180f-0000-1000-8000-00805f9b34fb
       description: Battery Service
@@ -251,18 +311,21 @@ peripheral:
         - name: Battery Level
           uuid: 00002a19-0000-1000-8000-00805f9b34fb
           description: Battery Level characteristic
-          value:
-            - 0x64 # Battery level at 100%
+          value: [0x64] # 100%
           notifying: false
           flags: [read, notify]
           descriptors:
             - name: Client Characteristic Configuration Descriptor
               uuid: 00002902-0000-1000-8000-00805f9b34fb
               description: Enables notifications or indications
-              value:
-                - 0x00
-                - 0x00
+              value: [0x00, 0x00]
               flags: [read, write]
+            - name: Report Reference Descriptor
+              uuid: 00002908-0000-1000-8000-00805f9b34fb
+              description: Link Battery Level into HID via External Report Ref
+              value: [0x03, 0x01]  # Report ID 3 (example), Input
+              flags: [read]
+
     - name: Device Information Service
       uuid: 0000180a-0000-1000-8000-00805f9b34fb
       description: Device Information Service
@@ -271,86 +334,49 @@ peripheral:
         - name: Manufacturer Name String
           uuid: 00002a29-0000-1000-8000-00805f9b34fb
           description: Manufacturer Name String characteristic
-          value:
-            - 0x4D # 'M'
-            - 0x65 # 'e'
-            - 0x65 # 'e'
-            - 0x68 # 'h'
-            - 0x6F # 'o'
-            - 0x67 # 'g'
-            - 0x20 # ' '
-            - 0x43 # 'C'
-            - 0x6F # 'o'
-            - 0x2E # '.'
+          value: [0x4D,0x65,0x65,0x68,0x6F,0x67,0x20,0x43,0x6F,0x2E]
           notifying: false
           flags: [read]
           descriptors: []
         - name: Model Number String
           uuid: 00002a24-0000-1000-8000-00805f9b34fb
           description: Model Number String characteristic
-          value:
-            - 0x42 # 'B'
-            - 0x6C # 'l'
-            - 0x6F # 'o'
-            - 0x78 # 'x'
-            - 0x79 # 'y'
+          value: [0x42,0x6C,0x6F,0x78,0x79]
           notifying: false
           flags: [read]
           descriptors: []
         - name: Serial Number String
           uuid: 00002a25-0000-1000-8000-00805f9b34fb
           description: Serial Number String characteristic
-          value:
-            - 0x30 # '0'
-            - 0x30 # '0'
-            - 0x31 # '1'
+          value: [0x30,0x30,0x31]
           notifying: false
           flags: [read]
           descriptors: []
         - name: Firmware Revision String
           uuid: 00002a26-0000-1000-8000-00805f9b34fb
           description: Firmware Revision String characteristic
-          value:
-            - 0x31 # '1'
-            - 0x2E # '.'
-            - 0x30 # '0'
-            - 0x2E # '.'
-            - 0x30 # '0'
+          value: [0x31,0x2E,0x30,0x2E,0x30]
           notifying: false
           flags: [read]
           descriptors: []
         - name: Hardware Revision String
           uuid: 00002a27-0000-1000-8000-00805f9b34fb
           description: Hardware Revision String characteristic
-          value:
-            - 0x31 # '1'
-            - 0x2E # '.'
-            - 0x30 # '0'
+          value: [0x31,0x2E,0x30]
           notifying: false
           flags: [read]
           descriptors: []
         - name: Software Revision String
           uuid: 00002a28-0000-1000-8000-00805f9b34fb
           description: Software Revision String characteristic
-          value:
-            - 0x31 # '1'
-            - 0x2E # '.'
-            - 0x30 # '0'
+          value: [0x31,0x2E,0x30]
           notifying: false
           flags: [read]
           descriptors: []
         - name: System ID
           uuid: 00002a23-0000-1000-8000-00805f9b34fb
           description: System ID characteristic
-          value:
-            - 0x12
-            - 0x34
-            - 0x56
-            - 0xFF
-            - 0xFE
-            - 0x9A
-            - 0xBC
-            - 0xDE
+          value: [0x12,0x34,0x56,0xFF,0xFE,0x9A,0xBC,0xDE]
           notifying: false
           flags: [read]
           descriptors: []
