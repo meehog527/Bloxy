@@ -4,7 +4,7 @@
 
 peripheral:
   localName: Bloxy
-  appearance: 960  # Mouse/Keyboard Combo.  
+  appearance: 960  # Mouse/Keyboard Combo. 
   services:
     - name: HID service
       uuid: 00001812-0000-1000-8000-00805f9b34fb
@@ -26,171 +26,107 @@ peripheral:
           uuid: 00002a4b-0000-1000-8000-00805f9b34fb
           description: HID Report Map characteristic (defines HID structure)
           value:
-            #....UsagePage(Generic Desktop[0x0001])
+            # UsagePage(Generic Desktop)
             - 05
             - 01
-            #....UsageId(Keyboard[0x0006])
+            # Usage(Keyboard)
             - 09
             - 06
-            #....Collection(Application)
+            # Collection(Application)
             - A1
             - 01
-            #........ReportId(1)
+            #   ReportId(1)
             - 85
             - 01
-            #........UsagePage(Keyboard/Keypad[0x0007])
+            #   UsagePage(Keyboard/Keypad)
             - 05
             - 07
-            #........UsageIdMin(Keyboard LeftControl[0x00E0])
+            #   UsageMin(Keyboard LeftControl)
             - 19
             - E0
-            #........UsageIdMax(Keyboard Right GUI[0x00E7])
+            #   UsageMax(Keyboard Right GUI)
             - 29
             - E7
-            #........LogicalMinimum(0)
+            #   LogicalMin(0)
             - 15
             - 00
-            #........LogicalMaximum(1)
+            #   LogicalMax(1)
             - 25
             - 01
-            #........ReportCount(8)
+            #   ReportCount(8) - 8 modifier bits
             - 95
             - 08
-            #........ReportSize(1)
+            #   ReportSize(1)
             - 75
             - 01
-            #........Input(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
+            #   Input(Data,Var,Abs)
             - 81
             - 02
-            #........UsageIdMin(ErrorRollOver[0x0001])
+            #   Reserved byte (ReportCount=1, ReportSize=8)
+            - 95
+            - 01
+            - 75
+            - 08
+            #   Input(Const,Array,Abs) - reserved
+            - 81
+            - 01
+            #   UsageMin(ErrorRollOver)
             - 19
             - 01
-            #........UsageIdMax(Keyboard Application[0x0065])
+            #   UsageMax(Keyboard Application)
             - 29
             - 65
-            #........LogicalMinimum(1)
+            #   LogicalMin(1)
             - 15
             - 01
-            #........LogicalMaximum(101)
+            #   LogicalMax(101)
             - 25
             - 65
-            #........ReportSize(7)
-            - 75
-            - 07
-            #........Input(Data, Array, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-            - 81
-            - 00
-            #........UsagePage(LED[0x0008])
-            - 05
-            - 08
-            #........UsageIdMin(Num Lock[0x0001])
-            - 19
-            - 01
-            #........UsageIdMax(Kana[0x0005])
-            - 29
-            - 05
-            #........LogicalMinimum(0)
-            - 15
-            - 00
-            #........LogicalMaximum(1)
-            - 25
-            - 01
-            #........ReportCount(5)
+            #   ReportCount(6) - 6 keycodes
             - 95
-            - 05
-            #........ReportSize(1)
-            - 75
-            - 01
-            #........Output(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, NonVolatile, BitField)
-            - 91
-            - 02
-            #........ReportCount(1)
-            - 95
-            - 01
-            #........ReportSize(3)
-            - 75
-            - 03
-            #........Output(Constant, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, NonVolatile, BitField)
-            - 91
-            - 03
-            #....EndCollection()
-            - C0
-            #....UsagePage(Generic Desktop[0x0001])
-            - 05
-            - 01
-            #....UsageId(Mouse[0x0002])
-            - 09
-            - 02
-            #....Collection(Application)
-            - A1
-            - 01
-            #........ReportId(2)
-            - 85
-            - 02
-            #........UsageId(Pointer[0x0001])
-            - 09
-            - 01
-            #........Collection(Physical)
-            - A1
-            - 00
-            #............UsageId(X[0x0030])
-            - 09
-            - 30
-            #............UsageId(Y[0x0031])
-            - 09
-            - 31
-            #............LogicalMinimum(-128)
-            - 15
-            - 80
-            #............LogicalMaximum(127)
-            - 25
-            - 7F
-            #............ReportCount(2)
-            - 95
-            - 02
-            #............ReportSize(8)
-            - 75
-            - 08
-            #............Input(Data, Variable, Relative, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-            - 81
             - 06
-            #............UsagePage(Button[0x0009])
+            #   ReportSize(8)
+            - 75
+            - 08
+            #   Input(Data,Array,Abs)
+            - 81
+            - 00
+            #   UsagePage(LEDs)
             - 05
-            - 09
-            #............UsageIdMin(Button 1[0x0001])
+            - 08
+            #   UsageMin(Num Lock)
             - 19
             - 01
-            #............UsageIdMax(Button 3[0x0003])
+            #   UsageMax(Kana)
             - 29
-            - 03
-            #............LogicalMinimum(0)
+            - 05
+            #   LogicalMin(0)
             - 15
             - 00
-            #............LogicalMaximum(1)
+            #   LogicalMax(1)
             - 25
             - 01
-            #............ReportCount(3)
+            #   ReportCount(5)
             - 95
-            - 03
-            #............ReportSize(1)
-            - 75
-            - 01
-            #............Input(Data, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-            - 81
-            - 02
-            #........EndCollection()
-            - C0
-            #........ReportCount(1)
-            - 95
-            - 01
-            #........ReportSize(5)
-            - 75
             - 05
-            #........Input(Constant, Variable, Absolute, NoWrap, Linear, PreferredState, NoNullPosition, BitField)
-            - 81
+            #   ReportSize(1)
+            - 75
+            - 01
+            #   Output(Data,Var,Abs)
+            - 91
+            - 02
+            #   ReportCount(1)
+            - 95
+            - 01
+            #   ReportSize(3)
+            - 75
             - 03
-            #....EndCollection()
+            #   Output(Const,Var,Abs) - padding
+            - 91
+            - 03
+            # EndCollection
             - C0
+
   
 
           notifying: false
