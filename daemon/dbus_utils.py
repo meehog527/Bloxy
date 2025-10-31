@@ -14,7 +14,7 @@ from constants import (
     AUTHORIZATION, ADVERTISEMENT_PATH_BASE, LOG_LEVEL, LOG_FORMAT
 )
 
-logging.basicConfig(LOG_LEVEL, format=LOG_FORMAT)
+logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
