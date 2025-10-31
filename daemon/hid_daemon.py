@@ -6,6 +6,7 @@ import logging
 import dbus
 import dbus.mainloop.glib
 import dbus.service
+import signal
 import sys
 from gi.repository import GLib
 
@@ -138,28 +139,33 @@ class HIDDaemon:
 
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
+        # Subscribe to controller events
+        self.controller.on_ready(self._on_controller_ready)
+        self.controller.on_failed(self._on_controller_failed)
+
     # ------------------------------------------------------------------
     # Initialization steps
     # ------------------------------------------------------------------
 
     def start(self):
-        """Run all initialization steps in order."""
+        """Kick off controller startup. Readiness is async via callbacks."""
         if not self._start_controller():
+            # Only return False if the controller failed synchronously (rare).
             return False
-        if not self._setup_input_devices():
-            return False
-        self._create_dbus_service()
-        self._schedule_report_updates()
-        self.logger.info("HID peripheral daemon running.")
         return True
 
     def _start_controller(self):
-        """Start the peripheral controller and handle errors."""
-        if not self.controller.start():
-            self.logger.error("Peripheral controller failed to start, exiting.")
+        """Start the peripheral controller and handle synchronous errors."""
+        try:
+            if not self.controller.start():
+                self.logger.error("Peripheral controller failed to start synchronously.")
+                GLib.MainLoop().quit()
+                return False
+            return True
+        except Exception as e:
+            self.logger.exception(f"Controller start raised exception: {e}")
             GLib.MainLoop().quit()
             return False
-        return True
 
     def _setup_input_devices(self):
         """Validate and initialize input devices."""
@@ -221,6 +227,34 @@ class HIDDaemon:
 
         GLib.timeout_add(20, update_reports)
 
+    # ------------------------------------------------------------------
+    # Controller callbacks
+    # ------------------------------------------------------------------
+
+    def _on_controller_ready(self):
+        """Proceed with setup once controller is truly ready (app + adv)."""
+        if not self._setup_input_devices():
+            return
+        self._create_dbus_service()
+        self._schedule_report_updates()
+        self.logger.info("✅ HID peripheral daemon fully running.")
+
+    def _on_controller_failed(self, reason):
+        self.logger.error(f"❌ Peripheral controller failed: {reason}")
+        GLib.MainLoop().quit()
+
+    # ------------------------------------------------------------------
+    # Shutdown
+    # ------------------------------------------------------------------
+
+    def stop(self):
+        """Clean shutdown: unregister advertisement/application if needed."""
+        try:
+            if self.controller:
+                self.controller.stop()
+            self.logger.info("HIDDaemon stopped cleanly.")
+        except Exception as e:
+            self.logger.exception(f"Error during shutdown: {e}")
 
 # ----------------------------------------------------------------------
 # Helpers
@@ -244,27 +278,51 @@ def validate_input_device(dev_path, device_type):
 # ----------------------------------------------------------------------
 
 def main():
-    logger.info("Starting HID daemon")
+    logger.info("🚀 Starting HID daemon")
+    # Ensure DBus integrates with GLib
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
     bus = dbus.SystemBus()
     name = dbus.service.BusName(DAEMON_BUS_NAME, bus)
 
+    # Load configuration
     peripheral_yaml = os.environ.get('PERIPHERAL_YAML', 'peripheral.yaml')
     report_yaml = os.environ.get('REPORT_MAP_YAML', 'report_map.yaml')
     cfg = load_yaml_config(peripheral_yaml)
     report_builder = HIDReportBuilder(report_yaml)
 
+    # Build services and application
     services = [HIDService(bus, i, svc_cfg)
                 for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
-
     app = HIDApplication(bus, services, path=HID_APP_PATH)
-    controller = PeripheralController(bus, services, cfg, app_path=HID_APP_PATH)
 
+    # Controller and daemon
+    controller = PeripheralController(bus, services, cfg, app_path=HID_APP_PATH)
     daemon = HIDDaemon(bus, services, controller, report_builder)
 
+    # Main loop
+    loop = GLib.MainLoop()
+
+    # Clean shutdown on SIGINT/SIGTERM
+    def shutdown(*args):
+        logger.info("🛑 Stopping HID daemon...")
+        try:
+            daemon.stop()
+        except Exception as e:
+            logger.exception("Error during daemon shutdown: %s", e)
+        loop.quit()
+
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    # Start daemon once loop is idle
     GLib.idle_add(daemon.start)
-    GLib.MainLoop().run()
+
+    try:
+        loop.run()
+    except KeyboardInterrupt:
+        shutdown()
+
 
 
 if __name__ == '__main__':

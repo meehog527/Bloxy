@@ -5,6 +5,8 @@ import dbus.service
 import subprocess
 import logging
 import time
+from gi.repository import GLib
+import dbus.mainloop.glib
 
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
@@ -363,13 +365,12 @@ class PeripheralController:
     # GATT application
     # ----------------------------------------------------------------------
 
+
     def register_gatt_application_and_advertisement(self):
-        self.logger.debug("=== Register GATT Application ===")
         manager = dbus.Interface(
             self.bus.get_object("org.bluez", self.adapter_path),
             "org.bluez.GattManager1"
         )
-
         manager.RegisterApplication(
             self.app_path,
             {},
@@ -378,50 +379,73 @@ class PeripheralController:
         )
         self.logger.debug("RegisterApplication call sent, waiting for reply...")
 
-    # ----------------------------------------------------------------------
 
     def _on_app_registered(self, *args):
         self.logger.info("✅ Application registered, now registering advertisement...")
-
-        adv_manager = dbus.Interface(
-            self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path), LE_ADVERTISING_MANAGER_IFACE)
-
-        adv_manager.RegisterAdvertisement(
+        adv = dbus.Interface(
+            self.bus.get_object("org.bluez", self.adapter_path),
+            "org.bluez.LEAdvertisingManager1"
+        )
+        adv.RegisterAdvertisement(
             self.advertisement.get_path(),
             {},
             reply_handler=self._on_adv_registered,
             error_handler=self._on_adv_error
         )
 
+
     def _on_app_error(self, error):
         self.logger.error(f"❌ Application registration failed: {error}")
+        self._emit_failed(str(error))
 
-    # ----------------------------------------------------------------------
 
     def _on_adv_registered(self, *args):
         self.logger.info("✅ Advertisement registered successfully.")
+        self._emit_ready()
+
 
     def _on_adv_error(self, error):
-        if "NoReply" in str(error):
+        msg = str(error)
+        if "NoReply" in msg:
             self.logger.warning("⚠️ Advertisement registration timed out, retrying in 2s...")
             GLib.timeout_add_seconds(2, lambda: self._retry_advertisement() or False)
-        elif "AlreadyExists" in str(error):
+        elif "AlreadyExists" in msg:
             self.logger.warning("⚠️ Advertisement already exists, continuing...")
+            self._emit_ready()
         else:
             self.logger.error(f"❌ Advertisement registration failed: {error}")
+            self._emit_failed(msg)
+
 
     def _retry_advertisement(self):
-        adv_manager = dbus.Interface(
+        adv = dbus.Interface(
             self.bus.get_object("org.bluez", self.adapter_path),
             "org.bluez.LEAdvertisingManager1"
         )
-        adv_manager.RegisterAdvertisement(
+        adv.RegisterAdvertisement(
             self.advertisement.get_path(),
             {},
             reply_handler=self._on_adv_registered,
             error_handler=self._on_adv_error
         )
         return False  # stop GLib timeout
+
+
+    # Simple readiness signaling hooks
+    def on_ready(self, cb):
+        self._ready_cb = cb
+
+    def on_failed(self, cb):
+        self._failed_cb = cb
+
+    def _emit_ready(self):
+        if hasattr(self, "_ready_cb") and self._ready_cb:
+            self._ready_cb()
+
+    def _emit_failed(self, reason):
+        if hasattr(self, "_failed_cb") and self._failed_cb:
+            self._failed_cb(reason)
+
 
     # ----------------------------------------------------------------------
     # Advertising
