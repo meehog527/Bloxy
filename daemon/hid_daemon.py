@@ -137,6 +137,10 @@ class HIDDaemon:
         self.daemon_service = None
         self.last_kb_report = None
 
+        # New flags to prevent duplicates
+        self._service_created = False
+        self._controller_ready_seen = False
+
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         # Subscribe to controller events
@@ -153,7 +157,6 @@ class HIDDaemon:
             return False
         return True
 
-
     def _start_controller(self):
         try:
             if not self.controller.start():
@@ -165,7 +168,6 @@ class HIDDaemon:
             self.logger.exception(f"Controller start raised exception: {e}")
             GLib.MainLoop().quit()
             return False
-
 
     def _setup_input_devices(self):
         """Validate and initialize input devices."""
@@ -188,6 +190,10 @@ class HIDDaemon:
 
     def _create_dbus_service(self):
         """Create the HIDPeripheralService and locate HID characteristics."""
+        if self._service_created:
+            self.logger.warning("⚠️ HIDPeripheralService already exists, skipping re‑creation.")
+            return
+
         self.daemon_service = HIDPeripheralService(
             bus=self.bus,
             services=self.services,
@@ -195,6 +201,7 @@ class HIDDaemon:
             trackers={'keyboard': self.keyboard_dev, 'mouse': self.mouse_dev},
             report_builder=self.report_builder
         )
+        self._service_created = True
 
         for svc in self.services:
             for ch in svc.characteristics:
@@ -234,10 +241,13 @@ class HIDDaemon:
     def _on_controller_ready(self):
         if not self._setup_input_devices():
             return
+        if self._controller_ready_seen:
+            self.logger.debug("Controller ready already processed; ignoring duplicate.")
+            return
         self._create_dbus_service()
         self._schedule_report_updates()
         self.logger.info("✅ HID peripheral daemon fully running.")
-
+        self._controller_ready_seen = True
 
     def _on_controller_failed(self, reason):
         if "AlreadyExists" in str(reason):
@@ -246,7 +256,6 @@ class HIDDaemon:
         self.logger.error(f"❌ Peripheral controller failed: {reason}")
         GLib.MainLoop().quit()
 
-
     # ------------------------------------------------------------------
     # Shutdown
     # ------------------------------------------------------------------
@@ -254,17 +263,32 @@ class HIDDaemon:
     def stop(self):
         """Clean shutdown: unregister advertisement/application if needed."""
         try:
+            if self.daemon_service:
+                try:
+                    self.daemon_service.remove_from_connection()
+                    self.logger.info("🛑 HIDPeripheralService unregistered.")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not unregister HIDPeripheralService: {e}")
+                self.daemon_service = None
+                self._service_created = False
+                self._controller_ready_seen = False
+
             if self.controller:
                 self.controller.stop()
             self.logger.info("HIDDaemon stopped cleanly.")
         except Exception as e:
             self.logger.exception(f"Error during shutdown: {e}")
 
+
 # ----------------------------------------------------------------------
 # Helpers
 # ----------------------------------------------------------------------
 
 def validate_input_device(dev_path, device_type):
+    """
+    Ensure the given input device path exists and is accessible.
+    Returns True if valid, False otherwise.
+    """
     if not os.path.exists(dev_path):
         logger.error("Device path %s does not exist", dev_path)
         return False
@@ -275,6 +299,7 @@ def validate_input_device(dev_path, device_type):
     except Exception as e:
         logger.error("Failed to access %s device %s: %s", device_type, dev_path, e)
         return False
+
 
 
 # ----------------------------------------------------------------------
