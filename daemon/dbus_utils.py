@@ -394,8 +394,24 @@ class PeripheralController:
         )
 
     def _on_app_error(self, error):
-        self.logger.error(f"❌ Application registration failed: {error}")
-        self._emit_failed(str(error))
+        msg = str(error)
+        if "AlreadyExists" in msg:
+            self.logger.warning("⚠️ Application already registered, continuing...")
+            # Go straight to advertisement registration
+            adv = dbus.Interface(
+                self.bus.get_object("org.bluez", self.adapter_path),
+                "org.bluez.LEAdvertisingManager1"
+            )
+            adv.RegisterAdvertisement(
+                self.advertisement.get_path(),
+                {},
+                reply_handler=self._on_adv_registered,
+                error_handler=self._on_adv_error
+            )
+        else:
+            self.logger.error(f"❌ Application registration failed: {error}")
+            self._emit_failed(msg)
+
 
 
     def _on_adv_registered(self, *args):

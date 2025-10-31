@@ -240,8 +240,12 @@ class HIDDaemon:
 
 
     def _on_controller_failed(self, reason):
+        if "AlreadyExists" in str(reason):
+            self.logger.warning("⚠️ Ignoring AlreadyExists error; controller is probably still active.")
+            return
         self.logger.error(f"❌ Peripheral controller failed: {reason}")
         GLib.MainLoop().quit()
+
 
     # ------------------------------------------------------------------
     # Shutdown
