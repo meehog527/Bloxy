@@ -383,3 +383,22 @@ class PeripheralController:
             return f"Devices seen: {devices}"
         except Exception as e:
             return f"Device check failed: {e}"
+    
+    def remove_cached_device(self, mac_address):
+        """
+        Remove a cached Bluetooth device from BlueZ by MAC address.
+        Example: remove_cached_device("AA:BB:CC:DD:EE:FF")
+        """
+        try:
+            # Build the device object path
+            dev_path = f"{self.adapter_path}/dev_{mac_address.replace(':', '_')}"
+            adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
+            adapter_iface = dbus.Interface(adapter, "org.bluez.Adapter1")
+
+            adapter_iface.RemoveDevice(dev_path)
+            self.logger.info(f"🗑️ Removed cached device {mac_address} ({dev_path})")
+            return True
+        except dbus.exceptions.DBusException as e:
+            self.logger.error(f"❌ Failed to remove cached device {mac_address}: {e}")
+            return False
+

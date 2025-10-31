@@ -379,7 +379,17 @@ def repl_loop(daemon):
             print("Exiting REPL (daemon continues).")
             break
         elif cmd == "help":
-            print("Commands: status, check-adapter, check-services, check-devices, trust <MAC>")
+            command_map=[
+                "status",
+                "check-adapter",
+                "check-services",
+                "check-devices",
+                "trust <mac>",
+                "cache-list",
+                "cache-clear"
+            ]
+            command_msg = "\r\n".join(command_map)
+            print(command_msg)
         elif cmd == "status":
             if daemon.daemon_service:
                 status_json = daemon.daemon_service.GetStatus()
@@ -401,6 +411,11 @@ def repl_loop(daemon):
         elif cmd.startswith("trust "):
             mac = cmd.split(" ", 1)[1]
             print("Trust result:", daemon.controller.trust_device(mac))
+        elif cmd == "cache-list":
+            print(daemon.controller.list_cached_devices)
+        elif cmd.startswith("cache-clear "):
+            mac = cmd.split(" ", 1)[1]
+            daemon.controller.clear_cached_devices(mac)
         else:
             print(f"Unknown command: {cmd}")
 
