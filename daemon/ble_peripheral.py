@@ -15,7 +15,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
-logger = logging.getLogger("hid_daemon")
+logger = logging.getLogger(__name__)
 
 
 class GattObject(dbus.service.Object):

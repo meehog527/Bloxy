@@ -14,57 +14,75 @@ from constants import (
     AUTHORIZATION, ADVERTISEMENT_PATH_BASE
 )
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("PeripheralController")
 
 
 class Agent(dbus.service.Object):
+    """
+    BlueZ Agent implementation (org.bluez.Agent1).
+    Handles pairing and authorization requests from BlueZ.
+    """
+
     def __init__(self, bus):
         super().__init__(bus, AGENT_PATH)
 
+    # ------------------------------------------------------------------
+    # BlueZ Agent1 interface methods
+    # ------------------------------------------------------------------
+
     @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
     def Release(self):
-        logger.info("Release")
+        """Called when the agent is unregistered or released by BlueZ."""
+        logger.info("Agent released")
 
     @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
+        """Authorize a service connection request."""
         logger.info(f"AuthorizeService: {device} {uuid}")
-        return #Accept the pairing by returning normally
-    
+        # Accept by returning normally
+        # To reject: raise dbus.exceptions.DBusException("org.bluez.Error.Rejected", "Unauthorized")
+
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="s")
     def RequestPinCode(self, device):
+        """Request a PIN code (legacy pairing)."""
         logger.info(f"RequestPinCode: {device}")
-        return "0000"
+        return dbus.String("0000")
 
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="u")
     def RequestPasskey(self, device):
+        """Request a numeric passkey (for SSP pairing)."""
         logger.info(f"RequestPasskey: {device}")
         return dbus.UInt32(123456)
 
     @dbus.service.method(AGENT_IFACE, in_signature="ouq", out_signature="")
     def DisplayPasskey(self, device, passkey, entered):
-        logger.info(f"DisplayPasskey: {device} {passkey} entered: {entered}")
+        """Display a passkey with number of entered digits (for SSP)."""
+        logger.info(f"DisplayPasskey: {device} passkey={passkey} entered={entered}")
 
     @dbus.service.method(AGENT_IFACE, in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
+        """Request confirmation of a displayed passkey."""
         logger.info(f"RequestConfirmation: {device} passkey={passkey}")
-        return #Accept the confirming by returning normally
+        # Accept by returning normally
 
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="")
     def RequestAuthorization(self, device):
+        """Request authorization for a device before pairing completes."""
         logger.info(f"RequestAuthorization: {device}")
 
     @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
     def Cancel(self):
-        logger.info("Cancel called")
+        """Called when the agent request is canceled by BlueZ."""
+        logger.info("Agent request canceled")
 
-    # --- Added for KeyboardDisplay capability ---
+    # ------------------------------------------------------------------
+    # Additional methods for KeyboardDisplay capability
+    # ------------------------------------------------------------------
+
     @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def DisplayPinCode(self, device, pincode):
-        """
-        Called when the agent needs to display a PIN code to the user.
-        Required for KeyboardDisplay capability.
-        """
+        """Display a PIN code to the user (KeyboardDisplay capability)."""
         logger.info(f"DisplayPinCode: {device} pincode={pincode}")
 
 class PeripheralController:
