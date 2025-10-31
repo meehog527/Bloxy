@@ -453,20 +453,20 @@ class PeripheralController:
             self.logger.error(f"❌ Failed to trust device {mac_address}: {e}")
             return False
 
-    def list_connected_devices(self):
-        """
-        Return a list of currently connected devices as (addr, name, path).
-        """
-        connected = []
-        objects = self.manager.GetManagedObjects()
-        for path, ifaces in objects.items():
-            if DEVICE_IFACE in ifaces:
-                props = ifaces[DEVICE_IFACE]
-                if props.get("Connected", False):
-                    addr = props.get("Address")
-                    name = props.get("Name")
-                    connected.append((addr, name, path))
-        return connected
+    #def list_connected_devices(self):
+    #    """
+    #    Return a list of currently connected devices as (addr, name, path).
+    #    """
+    #    connected = []
+    #    objects = self.manager.GetManagedObjects()
+    #    for path, ifaces in objects.items():
+    #        if DEVICE_IFACE in ifaces:
+    #            props = ifaces[DEVICE_IFACE]
+    #            if props.get("Connected", False):
+    #                addr = props.get("Address")
+    #                name = props.get("Name")
+    #                connected.append((addr, name, path))
+    #    return connected
 
     # ----------------------------------------------------------------------
     # Lifecycle management
@@ -497,14 +497,14 @@ class PeripheralController:
 
         self.is_on = True
 
-        connected = self.list_connected_devices()
-        for addr, name, path in connected:
-            self.logger.info(f"Already connected: {addr} ({name})")
-            # Optionally trust automatically:
-            self.trust_device(addr)
+       #connected = self.list_connected_devices()
+       #for addr, name, path in connected:
+       #    self.logger.info(f"Already connected: {addr} ({name})")
+       #    # Optionally trust automatically:
+       #    self.trust_device(addr)
 
-        self.logger.debug(f"Connected devices: {connected}")
-        return True
+       #self.logger.debug(f"Connected devices: {connected}")
+       #return True
 
     def stop(self):
         """
