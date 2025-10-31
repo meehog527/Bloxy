@@ -203,7 +203,7 @@ class PeripheralController:
             bus_name="org.bluez",
             signal_name="PropertiesChanged",
             dbus_interface="org.freedesktop.DBus.Properties",
-            path=self.adapter_path
+            path_keyword="path"
         )
 
         # Watch for Device property changes (RSSI, ServicesResolved, Paired, Trusted, etc.)
@@ -230,19 +230,20 @@ class PeripheralController:
     # Signal handlers
     # ------------------------------------------------------------------
 
+    def _on_interface_removed(self, path, ifaces):
+        if "org.bluez.Device1" in ifaces:
+            addr = path.split("dev_")[-1].replace("_", ":")
+            self.logger.warning(f"🗑️ Device object removed: {addr} ({path})")
+            self.connected_devices.pop(addr, None)
+
     def _on_interface_added(self, path, ifaces):
         if "org.bluez.Device1" in ifaces:
             props = ifaces["org.bluez.Device1"]
             addr = str(props.get("Address"))
             self.logger.info(f"📡 Device discovered: {addr} ({path})")
 
-    def _on_interface_removed(self, path, ifaces):
-        if "org.bluez.Device1" in ifaces:
-            addr = path.split("dev_")[-1].replace("_", ":")
-            self.logger.info(f"🗑️ Device removed: {addr} ({path})")
-            self.connected_devices.pop(addr, None)
 
-    def _on_properties_changed(self, interface, changed, invalidated, path):
+    def _on_device_properties_changed(self, interface, changed, invalidated, path):
         if interface != "org.bluez.Device1":
             return
         addr = path.split("dev_")[-1].replace("_", ":")
@@ -253,12 +254,22 @@ class PeripheralController:
             else:
                 self.logger.info(f"❌ Device disconnected: {addr} ({path})")
                 self.connected_devices.pop(addr, None)
+        if "ServicesResolved" in changed:
+            self.logger.info(f"📡 Device {addr} ServicesResolved={changed['ServicesResolved']}")
+        if "Paired" in changed:
+            self.logger.info(f"🔑 Device {addr} Paired={changed['Paired']}")
+        if "Trusted" in changed:
+            self.logger.info(f"⭐ Device {addr} Trusted={changed['Trusted']}")
+        if "RSSI" in changed:
+            self.logger.info(f"📶 Device {addr} RSSI={changed['RSSI']}")
+
 
     def _on_adapter_properties_changed(self, interface, changed, invalidated):
         if interface != "org.bluez.Adapter1":
             return
         for key, val in changed.items():
             self.logger.info(f"⚙️ Adapter property changed: {key}={val}")
+
 
     def _on_device_properties_changed(self, interface, changed, invalidated, path):
         if interface != "org.bluez.Device1":
