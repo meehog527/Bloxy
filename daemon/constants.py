@@ -4,7 +4,7 @@ import colorlog
 # ================================
 # Logging
 # ================================
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s(%(funcName)s): %(message)s"
 
 # ================================
