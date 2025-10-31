@@ -148,14 +148,13 @@ class HIDDaemon:
     # ------------------------------------------------------------------
 
     def start(self):
-        """Kick off controller startup. Readiness is async via callbacks."""
+        # Just kick off controller; readiness comes via callback
         if not self._start_controller():
-            # Only return False if the controller failed synchronously (rare).
             return False
         return True
 
+
     def _start_controller(self):
-        """Start the peripheral controller and handle synchronous errors."""
         try:
             if not self.controller.start():
                 self.logger.error("Peripheral controller failed to start synchronously.")
@@ -166,6 +165,7 @@ class HIDDaemon:
             self.logger.exception(f"Controller start raised exception: {e}")
             GLib.MainLoop().quit()
             return False
+
 
     def _setup_input_devices(self):
         """Validate and initialize input devices."""
@@ -232,12 +232,12 @@ class HIDDaemon:
     # ------------------------------------------------------------------
 
     def _on_controller_ready(self):
-        """Proceed with setup once controller is truly ready (app + adv)."""
         if not self._setup_input_devices():
             return
         self._create_dbus_service()
         self._schedule_report_updates()
         self.logger.info("✅ HID peripheral daemon fully running.")
+
 
     def _on_controller_failed(self, reason):
         self.logger.error(f"❌ Peripheral controller failed: {reason}")

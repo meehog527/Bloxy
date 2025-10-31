@@ -393,7 +393,6 @@ class PeripheralController:
             error_handler=self._on_adv_error
         )
 
-
     def _on_app_error(self, error):
         self.logger.error(f"❌ Application registration failed: {error}")
         self._emit_failed(str(error))
@@ -403,12 +402,11 @@ class PeripheralController:
         self.logger.info("✅ Advertisement registered successfully.")
         self._emit_ready()
 
-
     def _on_adv_error(self, error):
         msg = str(error)
         if "NoReply" in msg:
             self.logger.warning("⚠️ Advertisement registration timed out, retrying in 2s...")
-            GLib.timeout_add_seconds(2, lambda: self._retry_advertisement() or False)
+            GLib.timeout_add_seconds(2, self._retry_advertisement)
         elif "AlreadyExists" in msg:
             self.logger.warning("⚠️ Advertisement already exists, continuing...")
             self._emit_ready()
@@ -522,38 +520,18 @@ class PeripheralController:
     # ----------------------------------------------------------------------
 
     def start(self):
-        """
-        Start the peripheral: power adapter, set discoverable/pairable,
-        register agent, GATT application, and advertisement.
-        """
         self.logger.info("🚀 Starting peripheral controller...")
-
-        if not self.power_on_adapter():
-            self.logger.error("❌ Could not power on adapter.")
+        try:
+            self.power_on_adapter()
+            self.set_discoverable_pairable()
+            self.register_agent()
+            # Kick off async registration; don’t treat as failure here
+            self.register_gatt_application_and_advertisement()
+            return True
+        except Exception as e:
+            self.logger.exception(f"❌ Peripheral failed to start synchronously: {e}")
+            self._emit_failed(str(e))
             return False
-
-        if not self.set_discoverable_pairable():
-            self.logger.error("❌ Could not make adapter discoverable.")
-            return False
-
-        if not self.register_agent():
-            self.logger.error("❌ Could not register agent.")
-            return False
-
-        if not self.register_gatt_application_and_advertisement():
-            self.logger.error("❌ Peripheral failed to start.")
-            return False
-
-        self.is_on = True
-
-       #connected = self.list_connected_devices()
-       #for addr, name, path in connected:
-       #    self.logger.info(f"Already connected: {addr} ({name})")
-       #    # Optionally trust automatically:
-       #    self.trust_device(addr)
-
-       #self.logger.debug(f"Connected devices: {connected}")
-       #return True
 
     def stop(self):
         """
