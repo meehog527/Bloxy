@@ -392,29 +392,37 @@ class PeripheralController:
     # Advertising
     # ----------------------------------------------------------------------
 
-    def register_advertisement(self):
+    def register_advertisement(self, ad_obj):
+        manager = dbus.Interface(
+            self.bus.get_object("org.bluez", "/org/bluez/hci0"),
+            "org.bluez.LEAdvertisingManager1"
+        )
         try:
-            adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
-            ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
-
-            self.advertisement = Advertisement(self.bus, 0, self.config)
-            ad_manager.RegisterAdvertisement(
-                self.advertisement.get_path(),
-                {},
-                reply_handler=lambda: self.logger.info("✅ Advertising registered: %s", self.advertisement.service_uuids),
-                error_handler=lambda e: self.logger.error("❌ Failed to register advertisement: %s", e),
-            )
+            manager.RegisterAdvertisement(ad_obj, {})
+            logger.info("✅ Advertisement registered.")
             return True
-        except Exception as e:
-            self.logger.error(f"❌ Could not register advertisement: {e}")
-            return False
+        except dbus.exceptions.DBusException as e:
+            if "AlreadyExists" in str(e) or "already a handler" in str(e):
+                logger.warning("⚠️ Advertisement already exists, unregistering and retrying...")
+                try:
+                    self.unregister_advertisement()
+                    manager.RegisterAdvertisement(ad_obj, {})
+                    logger.info("✅ Advertisement re‑registered after cleanup.")
+                    return True
+                except dbus.exceptions.DBusException as inner:
+                    logger.error(f"❌ Failed to re‑register advertisement: {inner}")
+                    return False
+            else:
+                logger.error(f"❌ Could not register advertisement: {e}")
+                return False
+
 
     def unregister_advertisement(self):
         try:
             if self.advertisement:
                 adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
-                ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
-                ad_manager.UnregisterAdvertisement(self.advertisement.get_path())
+                self.manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
+                self.manager.UnregisterAdvertisement(self.advertisement.get_path())
                 self.logger.info("🛑 Advertisement unregistered.")
         except Exception as e:
             self.logger.error(f"❌ Failed to unregister advertisement: {e}")
