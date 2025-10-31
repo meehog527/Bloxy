@@ -187,6 +187,51 @@ class PeripheralController:
         self._starting = False
         self.is_on = False
 
+        # Subscribe to BlueZ signals
+        mngr = dbus.Interface(
+            self.bus.get_object("org.bluez", "/"),
+            "org.freedesktop.DBus.ObjectManager"
+        )
+        mngr.connect_to_signal("InterfacesAdded", self._on_interface_added)
+        mngr.connect_to_signal("InterfacesRemoved", self._on_interface_removed)
+
+        self.bus.add_signal_receiver(
+            self._on_properties_changed,
+            bus_name="org.bluez",
+            signal_name="PropertiesChanged",
+            dbus_interface="org.freedesktop.DBus.Properties",
+            path_keyword="path"
+        )
+
+    # ------------------------------------------------------------------
+    # Signal handlers
+    # ------------------------------------------------------------------
+
+    def _on_interface_added(self, path, ifaces):
+        if "org.bluez.Device1" in ifaces:
+            props = ifaces["org.bluez.Device1"]
+            addr = str(props.get("Address"))
+            self.logger.info(f"📡 Device discovered: {addr} ({path})")
+
+    def _on_interface_removed(self, path, ifaces):
+        if "org.bluez.Device1" in ifaces:
+            addr = path.split("dev_")[-1].replace("_", ":")
+            self.logger.info(f"🗑️ Device removed: {addr} ({path})")
+            self.connected_devices.pop(addr, None)
+
+    def _on_properties_changed(self, interface, changed, invalidated, path):
+        if interface != "org.bluez.Device1":
+            return
+        addr = path.split("dev_")[-1].replace("_", ":")
+        if "Connected" in changed:
+            if changed["Connected"]:
+                self.logger.info(f"🔗 Device connected: {addr} ({path})")
+                self.connected_devices[addr] = path
+            else:
+                self.logger.info(f"❌ Device disconnected: {addr} ({path})")
+                self.connected_devices.pop(addr, None)
+
+
     # ----------------------------------------------------------------------
     # Adapter control
     # ----------------------------------------------------------------------
