@@ -381,14 +381,22 @@ class PeripheralController:
             gatt_manager.RegisterApplication(
                 self.app_path,
                 {},
-                reply_handler=lambda: self.logger.info("✅ RegisterApplication succeeded (async reply)."),
-                error_handler=lambda e: self.logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)
+                reply_handler=self._on_app_registered(),
+                error_handler=lambda e: self._on_app_error(e)
             )
             self.logger.debug("RegisterApplication call sent, waiting for reply...")
             return True
         except dbus.DBusException as e:
             self.logger.error("Error calling RegisterApplication: %s", e)
             return False
+        
+    def _on_app_registered(self):
+        self.logger.info("✅ Application registered, now registering advertisement...")
+        self.register_advertisement()
+
+    def _on_app_error(self, error):
+        self.logger.error("❌ RegisterApplication failed: %s (%s)", error, type(error).__name__)
+
 
     # ----------------------------------------------------------------------
     # Advertising
