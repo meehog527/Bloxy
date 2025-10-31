@@ -381,7 +381,17 @@ def repl_loop(daemon):
         elif cmd == "help":
             print("Commands: status, check-adapter, check-services, check-devices, trust <MAC>")
         elif cmd == "status":
-            print(daemon.daemon_service.GetStatus() if daemon.daemon_service else "No service yet")
+            if daemon.daemon_service:
+                status_json = daemon.daemon_service.GetStatus()
+                try:
+                    status_obj = json.loads(status_json)
+                    print(json.dumps(status_obj, indent=2))
+                except Exception as e:
+                    print("Could not parse status JSON:", e)
+                    print(status_json)
+            else:
+                print("No service yet")
+
         elif cmd == "check-adapter":
             print(daemon.controller._check_adapter())
         elif cmd == "check-services":

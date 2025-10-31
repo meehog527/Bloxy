@@ -359,3 +359,27 @@ class PeripheralController:
             self.is_on = False
             self.logger.info("🛑 Peripheral stopped.")
         return True
+    
+    # ----------------------------------------------------------------------
+    # Diagnostics
+    # ----------------------------------------------------------------------
+
+    def _check_adapter(self):
+        try:
+            adapter = self.bus.get_object("org.bluez", self.adapter_path)
+            props = dbus.Interface(adapter, "org.freedesktop.DBus.Properties")
+            powered = props.Get("org.bluez.Adapter1", "Powered")
+            discoverable = props.Get("org.bluez.Adapter1", "Discoverable")
+            pairable = props.Get("org.bluez.Adapter1", "Pairable")
+            return f"Adapter powered={powered}, discoverable={discoverable}, pairable={pairable}"
+        except Exception as e:
+            return f"Adapter check failed: {e}"
+
+    def _check_devices(self):
+        try:
+            mngr = dbus.Interface(self.bus.get_object("org.bluez", "/"), "org.freedesktop.DBus.ObjectManager")
+            objs = mngr.GetManagedObjects()
+            devices = [path for path, ifaces in objs.items() if "org.bluez.Device1" in ifaces]
+            return f"Devices seen: {devices}"
+        except Exception as e:
+            return f"Device check failed: {e}"
