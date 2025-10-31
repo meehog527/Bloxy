@@ -480,7 +480,7 @@ class PeripheralController:
             self.logger.error("❌ Could not make adapter discoverable.")
             return False
 
-        if not self.register_agent():
+        if not self.register_agent(self.agent):
             self.logger.error("❌ Could not register agent.")
             return False
 
@@ -488,7 +488,7 @@ class PeripheralController:
             self.logger.error("❌ Peripheral failed to start.")
             return False
 
-        if not self.register_advertisement():
+        if not self.register_advertisement(self.advertisement):
             self.logger.error("❌ Could not register advertisement.")
             return False
 
