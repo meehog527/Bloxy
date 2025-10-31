@@ -534,3 +534,23 @@ class PeripheralController:
             self.logger.error(f"❌ Failed to list cached devices: {e}")
             return []
 
+    def get_connected_devices(self):
+        """
+        Query BlueZ directly for all Device1 objects and return those that are connected.
+        :param bus: a dbus.SystemBus() instance
+        :return: dict mapping MAC -> object path
+        """
+        mngr = dbus.Interface(
+            self.bus.get_object("org.bluez", "/"),
+            "org.freedesktop.DBus.ObjectManager"
+        )
+        objects = mngr.GetManagedObjects()
+        connected = {}
+        for path, ifaces in objects.items():
+            dev = ifaces.get("org.bluez.Device1")
+            if not dev:
+                continue
+            if dev.get("Connected", False):
+                addr = str(dev.get("Address"))
+                connected[addr] = path
+        return connected

@@ -386,7 +386,8 @@ def repl_loop(daemon):
                 "check-devices",
                 "trust <mac>",
                 "cache-list",
-                "cache-remove"
+                "cache-remove",
+                "get-connected-devices"
             ]
             command_msg = "\r\n".join(command_map)
             print(command_msg)
@@ -417,6 +418,9 @@ def repl_loop(daemon):
         elif cmd.startswith("cache-remove "):
             mac = cmd.split(" ", 1)[1]
             daemon.controller.remove_cached_device(mac)
+        elif cmd == "get-connected-devices":
+            devices = daemon.controller.get_connected_devices()
+            print(json.dumps(devices, indent=2))
         else:
             print(f"Unknown command: {cmd}")
 
