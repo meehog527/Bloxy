@@ -392,13 +392,13 @@ class PeripheralController:
     # Advertising
     # ----------------------------------------------------------------------
 
-    def register_advertisement(self, ad_obj):
+    def register_advertisement(self):
         manager = dbus.Interface(
             self.bus.get_object("org.bluez", "/org/bluez/hci0"),
             "org.bluez.LEAdvertisingManager1"
         )
         try:
-            manager.RegisterAdvertisement(ad_obj, {})
+            manager.RegisterAdvertisement(self..advertisement, {})
             logger.info("✅ Advertisement registered.")
             return True
         except dbus.exceptions.DBusException as e:
@@ -406,7 +406,7 @@ class PeripheralController:
                 logger.warning("⚠️ Advertisement already exists, unregistering and retrying...")
                 try:
                     self.unregister_advertisement()
-                    manager.RegisterAdvertisement(ad_obj, {})
+                    manager.RegisterAdvertisement(self.advertisement, {})
                     logger.info("✅ Advertisement re‑registered after cleanup.")
                     return True
                 except dbus.exceptions.DBusException as inner:
@@ -480,7 +480,7 @@ class PeripheralController:
             self.logger.error("❌ Could not make adapter discoverable.")
             return False
 
-        if not self.register_agent(self.agent):
+        if not self.register_agent():
             self.logger.error("❌ Could not register agent.")
             return False
 
@@ -488,7 +488,7 @@ class PeripheralController:
             self.logger.error("❌ Peripheral failed to start.")
             return False
 
-        if not self.register_advertisement(self.advertisement):
+        if not self.register_advertisement():
             self.logger.error("❌ Could not register advertisement.")
             return False
 
