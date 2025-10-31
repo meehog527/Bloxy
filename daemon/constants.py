@@ -8,7 +8,8 @@ ADAPTER_IFACE      = "org.bluez.Adapter1"
 AGENT_IFACE        = "org.bluez.Agent1"
 AGENT_MANAGER_IFACE= "org.bluez.AgentManager1"
 #DBUS
-
+DBUS_ERROR_INVARG = 'org.freedesktop.DBus.Error.InvalidArgs'
+DBUS_ERROR_PROPRO = 'org.freedesktop.DBus.Error.PropertyReadOnly'
 
 # BlueZ GATT Interfaces
 GATT_MANAGER_IFACE = "org.bluez.GattManager1"
