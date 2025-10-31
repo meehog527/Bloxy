@@ -337,11 +337,25 @@ class PeripheralController:
             )
             manager.RegisterAgent(AGENT_PATH, AUTHORIZATION)
             manager.RequestDefaultAgent(AGENT_PATH)
-            self.logger.info("✅ Agent registered and set as default.")
+            logger.info("✅ Agent registered and set as default.")
             return True
-        except Exception as e:
-            self.logger.error(f"❌ Failed to register agent: {e}")
-            return False
+
+        except dbus.exceptions.DBusException as e:
+            if "AlreadyExists" in str(e):
+                logger.warning("⚠️ Agent already exists, attempting to unregister and re‑register...")
+                try:
+                    manager.UnregisterAgent(AGENT_PATH)
+                    manager.RegisterAgent(AGENT_PATH, AUTHORIZATION)
+                    manager.RequestDefaultAgent(AGENT_PATH)
+                    logger.info("✅ Agent re‑registered after cleanup.")
+                    return True
+                except dbus.exceptions.DBusException as inner:
+                    logger.error(f"❌ Failed to re‑register agent: {inner}")
+                    return False
+            else:
+                logger.error(f"❌ Failed to register agent: {e}")
+                return False
+
 
     # ----------------------------------------------------------------------
     # GATT application
