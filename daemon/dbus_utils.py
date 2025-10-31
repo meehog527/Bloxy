@@ -395,10 +395,7 @@ class PeripheralController:
     # ----------------------------------------------------------------------
 
     def register_advertisement(self):
-        manager = dbus.Interface(
-            self.bus.get_object("org.bluez", "/org/bluez/hci0"),
-            "org.bluez.LEAdvertisingManager1"
-        )
+        manager = dbus.Interface(self.bus.get_object(BLUEZ_SERVICE_NAME, ADAPTER_PATH), LE_ADVERTISING_MANAGER_IFACE)
         try:
             manager.RegisterAdvertisement(self.advertisement, {})
             logger.info("✅ Advertisement registered.")
