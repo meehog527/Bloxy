@@ -398,7 +398,7 @@ class PeripheralController:
             "org.bluez.LEAdvertisingManager1"
         )
         try:
-            manager.RegisterAdvertisement(self..advertisement, {})
+            manager.RegisterAdvertisement(self.advertisement, {})
             logger.info("✅ Advertisement registered.")
             return True
         except dbus.exceptions.DBusException as e:
