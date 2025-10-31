@@ -203,8 +203,9 @@ class PeripheralController:
             bus_name="org.bluez",
             signal_name="PropertiesChanged",
             dbus_interface="org.freedesktop.DBus.Properties",
-            path_keyword="path"
+            path=self.adapter_path
         )
+
 
         # Watch for Device property changes (RSSI, ServicesResolved, Paired, Trusted, etc.)
         self.bus.add_signal_receiver(
