@@ -344,8 +344,13 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # Start daemon once loop is idle
-    GLib.idle_add(daemon.start)
+    # Start daemon once loop is idle (return False so it only runs once)
+    def start_once():
+        daemon.start()
+        return False
+
+    GLib.idle_add(start_once)
+
 
     try:
         loop.run()
