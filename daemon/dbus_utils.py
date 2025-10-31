@@ -85,8 +85,89 @@ class Agent(dbus.service.Object):
         """Display a PIN code to the user (KeyboardDisplay capability)."""
         logger.info(f"DisplayPinCode: {device} pincode={pincode}")
 
+class Advertisement(dbus.service.Object):
+    """
+    LE Advertisement object (org.bluez.LEAdvertisement1).
+    Exposes advertising data to BlueZ.
+    """
+
+    def __init__(self, bus, index, config, advertising_type="peripheral"):
+        # --- Internal state ---
+        self.path = ADVERTISEMENT_PATH_BASE + str(index)
+        self.bus = bus
+        self.ad_type = advertising_type
+        self.service_uuids = [svc["uuid"] for svc in config["peripheral"]["services"]]
+        self.local_name = config["peripheral"].get("localName", "HID Peripheral")
+        self.manufacturer_data = {}
+        self.solicit_uuids = None
+        self.service_data = {}
+        self.include_tx_power = True
+        self.appearance = config["peripheral"].get("appearance", 960)
+        super().__init__(bus, self.path)
+
+        logger.debug(
+            f"Advertisement initialized at {self.path} "
+            f"with services={self.service_uuids}, local_name={self.local_name}"
+        )
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def get_properties(self):
+        """
+        Return the advertisement properties as expected by BlueZ.
+        """
+        props = {
+            "Type": dbus.String(self.ad_type),
+            "ServiceUUIDs": dbus.Array([dbus.String(u) for u in self.service_uuids], signature="s"),
+            "LocalName": dbus.String(self.local_name),
+            "IncludeTxPower": dbus.Boolean(self.include_tx_power),
+            "Appearance": dbus.UInt16(self.appearance),
+        }
+
+        if self.manufacturer_data:
+            props["ManufacturerData"] = dbus.Dictionary(self.manufacturer_data, signature="qv")
+        if self.service_data:
+            props["ServiceData"] = dbus.Dictionary(self.service_data, signature="sv")
+        if self.solicit_uuids:
+            props["SolicitUUIDs"] = dbus.Array([dbus.String(u) for u in self.solicit_uuids], signature="s")
+
+        return {LE_ADVERTISEMENT_IFACE: props}
+
+    def get_path(self):
+        return dbus.ObjectPath(self.path)
+
+    # ------------------------------------------------------------------
+    # BlueZ-facing D-Bus methods (org.freedesktop.DBus.Properties + LEAdvertisement1)
+    # ------------------------------------------------------------------
+
+    @dbus.service.method(dbus.PROPERTIES_IFACE, in_signature="s", out_signature="a{sv}")
+    def GetAll(self, interface):
+        if interface != LE_ADVERTISEMENT_IFACE:
+            raise dbus.exceptions.DBusException(
+                f"org.freedesktop.DBus.Error.InvalidArgs: Invalid interface {interface}"
+            )
+        return self.get_properties()[LE_ADVERTISEMENT_IFACE]
+
+    @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature="", out_signature="")
+    def Release(self):
+        """Called when the advertisement is released by BlueZ."""
+        logger.info(f"Advertisement released at {self.path}")
+
 class PeripheralController:
+    """
+    PeripheralController manages the lifecycle of a Bluetooth LE HID peripheral.
+    Responsibilities:
+      - Powering adapter on/off
+      - Making adapter discoverable/pairable
+      - Registering Agent, GATT Application, and Advertisement
+      - Handling device property changes (connect/disconnect, trust, pairing)
+      - Tracking connected devices
+    """
+
     def __init__(self, bus, services, config, app_path=HID_APP_PATH):
+        # --- Internal state ---
         self.bus = bus
         self.manager = dbus.Interface(
             self.bus.get_object(BLUEZ_SERVICE_NAME, "/"),
@@ -98,8 +179,10 @@ class PeripheralController:
         self.agent = Agent(bus)
         self.is_on = False
         self.config = config
-        self.event_log = [] 
-        
+        self.event_log = []
+        self.advertisement = None
+
+        # Subscribe to Device1 property changes
         self.bus.add_signal_receiver(
             self.device_properties_changed,
             dbus_interface=DBUS_PROP_IFACE,
@@ -108,22 +191,39 @@ class PeripheralController:
             path_keyword="path"
         )
 
+    # ----------------------------------------------------------------------
+    # Signal handlers
+    # ----------------------------------------------------------------------
+
     def device_properties_changed(self, interface, changed, invalidated, path):
-        """Log all property changes for org.bluez.Device1 objects."""
+        """Entry point for org.bluez.Device1 property changes."""
         if interface != DEVICE_IFACE:
             return
 
         device = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
         props = dbus.Interface(device, DBUS_PROP_IFACE)
         addr = props.Get(DEVICE_IFACE, "Address")
-        #name = props.Get(DEVICE_IFACE, "Name")
 
+        # Always log changes
+        self._log_property_changes(addr, path, changed)
+
+        # Handle connection state
+        if "Connected" in changed:
+            if changed["Connected"]:
+                self._handle_device_connected(addr, path, props)
+            else:
+                self._handle_device_disconnected(addr, props)
+
+    # ----------------------------------------------------------------------
+    # Targeted helpers for property changes
+    # ----------------------------------------------------------------------
+
+    def _log_property_changes(self, addr, path, changed):
+        """Log all property changes with timestamp."""
         for key, value in changed.items():
-            #logger.info(f"🔔 Property changed: {addr} {key} = {value}")
             log = {
                 "event": "property_changed",
                 "address": addr,
-                
                 "path": path,
                 "property": key,
                 "value": value,
@@ -132,56 +232,63 @@ class PeripheralController:
             logger.info(f"🔔 Property changed: {log}")
             self.event_log.append(log)
 
-        # Special handling for connect/disconnect
-        if "Connected" in changed:
-            if changed["Connected"]:
-                logger.info(f"✅ Device connected: {addr}")
-                if interface == DEVICE_IFACE:
+    def _handle_device_connected(self, addr, path, props):
+        """Handle a device connection event."""
+        logger.info(f"✅ Device connected: {addr}")
 
-                    dev_obj = self.bus.get_object("org.bluez", path)
-                    dev_props = dbus.Interface(dev_obj, DBUS_PROP_IFACE)
+        dev_obj = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
+        dev_props = dbus.Interface(dev_obj, DBUS_PROP_IFACE)
+        dev_iface = dbus.Interface(dev_obj, DEVICE_IFACE)
 
-                    # Mark Trusted and AutoConnect for resilience
-                    try: 
-                        props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
-                        logger.info(f"✅ Device trusted: {addr}")
-                    except(e): 
-                        logger.info(f"✅ Device not trusted: {addr} - {e}")
-                        pass
+        # Mark Trusted
+        try:
+            props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
+            logger.info(f"✅ Device trusted: {addr}")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not set Trusted for {addr}: {e}")
 
-                    # Call Pair() on the device
-                    dev_iface = dbus.Interface(dev_obj, DEVICE_IFACE)
-                    paired = dev_props.Get(DEVICE_IFACE, "Paired")
-                    if not paired:
-                        try:
-                            print("[*] Not paired yet, calling Pair()")
-                            dev_iface.Pair()
-                        except dbus.exceptions.DBusException as e:
-                            print(f"[!] Pair() failed: {e}")
-                    else:
-                        print("[*] Device already paired, skipping Pair()")
-                        
-                    try:
-                        for svc in self.services:
-                            for ch in svc.characteristics:
-                                name = (ch.name or '').lower()
-                                if 'keyboard' in name and 'report' in name:
-                                    keyboard_char = ch
-                                    empty_report = [0x00] * 8
-                                    ch.update_value(empty_report)
-                                    logger.info("Sent dummy empty keyboard report")
-                                elif 'mouse' in name and 'report' in name:
-                                    mouse_char = ch
-                    except Exception as e:
-                            logger.exception("Error sending dummy report: %s", e)
+        # Pair if not already paired
+        paired = dev_props.Get(DEVICE_IFACE, "Paired")
+        if not paired:
+            try:
+                logger.info("[*] Not paired yet, calling Pair()")
+                dev_iface.Pair()
+            except dbus.exceptions.DBusException as e:
+                logger.error(f"[!] Pair() failed: {e}")
+        else:
+            logger.debug("[*] Device already paired, skipping Pair()")
 
-            else:
-                reason = None
-                try:
-                    reason = props.Get(DEVICE_IFACE, "DisconnectReason")
-                except Exception:
-                    reason = "unknown"
-                logger.info(f"❌ Device disconnected: {addr} reason={reason}")
+        # Send dummy HID reports
+        self._send_dummy_reports()
+
+    def _handle_device_disconnected(self, addr, props):
+        """Handle a device disconnection event."""
+        try:
+            reason = props.Get(DEVICE_IFACE, "DisconnectReason")
+        except Exception:
+            reason = "unknown"
+        logger.info(f"❌ Device disconnected: {addr} reason={reason}")
+
+    def _send_dummy_reports(self):
+        """Send initial empty HID reports for keyboard/mouse."""
+        try:
+            for svc in self.services:
+                for ch in svc.characteristics:
+                    name = (ch.name or '').lower()
+                    if 'keyboard' in name and 'report' in name:
+                        empty_report = [0x00] * 8
+                        ch.update_value(empty_report)
+                        logger.info("Sent dummy empty keyboard report")
+                    elif 'mouse' in name and 'report' in name:
+                        empty_report = [0x00] * 4
+                        ch.update_value(empty_report)
+                        logger.info("Sent dummy empty mouse report")
+        except Exception as e:
+            logger.exception("Error sending dummy report: %s", e)
+            
+    # ----------------------------------------------------------------------
+    # Adapter control
+    # ----------------------------------------------------------------------
 
     def power_on_adapter(self):
         try:
@@ -217,6 +324,10 @@ class PeripheralController:
             logger.error(f"❌ Failed to set discoverable/pairable: {e}")
             return False
 
+    # ----------------------------------------------------------------------
+    # Agent registration
+    # ----------------------------------------------------------------------
+
     def register_agent(self):
         try:
             manager = dbus.Interface(
@@ -230,6 +341,10 @@ class PeripheralController:
         except Exception as e:
             logger.error(f"❌ Failed to register agent: {e}")
             return False
+
+    # ----------------------------------------------------------------------
+    # GATT application
+    # ----------------------------------------------------------------------
 
     def register_gatt_application(self):
         logger.debug("=== Register GATT Application ===")
@@ -245,55 +360,58 @@ class PeripheralController:
             logger.error("Could not get GattManager1 on adapter: %s", e)
             return False
 
-        import traceback
-        
         try:
             gatt_manager.RegisterApplication(
                 self.app_path,
                 {},
                 reply_handler=lambda: logger.info("✅ RegisterApplication succeeded (async reply)."),
-                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)              
+                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)
             )
-            
             logger.debug("RegisterApplication call sent, waiting for reply...")
-            # ✅ Treat sending the async call as success
             return True
         except dbus.DBusException as e:
             logger.error("Error calling RegisterApplication: %s", e)
             return False
-    
-    def enable_advertising(self):
-        try:
-            process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            commands = ['power on\n', 'discoverable on\n', 'pairable on\n', 'advertise on\n', 'exit\n']
-            process.communicate(''.join(commands))
-            time.sleep(2)
-            result = subprocess.run(['bluetoothctl', 'show'], capture_output=True, text=True)
-            output = result.stdout
-            if "Discoverable: yes" in output:
-                logger.info("✅ Advertising successfully enabled.")
-                return True
-            else:
-                logger.warning("❌ Advertising not confirmed.")
-                return False
-        except Exception as e:
-            logger.error(f"❌ Error enabling advertising: {e}")
-            return False
-        
-    def register_advertisement(self):
-        adapter_path = ADAPTER_PATH
-        adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, adapter_path)
-        ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
 
-        self.advertisement = Advertisement(self.bus, 0, self.config)
-        ad_manager.RegisterAdvertisement(
-            self.advertisement.get_path(),
-            {},
-            reply_handler=lambda: logger.info("✅ Advertising registered: %s", self.advertisement.service_uuids),
-            error_handler=lambda e: logger.error("❌ Failed to register advertisement: %s", e),
-        )
+    # ----------------------------------------------------------------------
+    # Advertising
+    # ----------------------------------------------------------------------
+
+    def register_advertisement(self):
+        try:
+            adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
+            ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
+
+            self.advertisement = Advertisement(self.bus, 0, self.config)
+            ad_manager.RegisterAdvertisement(
+                self.advertisement.get_path(),
+                {},
+                reply_handler=lambda: logger.info("✅ Advertising registered: %s", self.advertisement.service_uuids),
+                error_handler=lambda e: logger.error("❌ Failed to register advertisement: %s", e),
+            )
+            return True
+        except Exception as e:
+            logger.error(f"❌ Could not register advertisement: {e}")
+            return False
+
+    def unregister_advertisement(self):
+        try:
+            if self.advertisement:
+                adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
+                ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
+                ad_manager.UnregisterAdvertisement(self.advertisement.get_path())
+                logger.info("🛑 Advertisement unregistered.")
+        except Exception as e:
+            logger.error(f"❌ Failed to unregister advertisement: {e}")
+
+    # ----------------------------------------------------------------------
+    # Device management
+    # ----------------------------------------------------------------------
 
     def trust_device(self, mac_address):
+        """
+        Mark a device as trusted so it can reconnect without prompting.
+        """
         try:
             device_path = f"{ADAPTER_PATH}/dev_{mac_address.replace(':', '_')}"
             device = self.bus.get_object(BLUEZ_SERVICE_NAME, device_path)
@@ -305,48 +423,10 @@ class PeripheralController:
             logger.error(f"❌ Failed to trust device {mac_address}: {e}")
             return False
 
-    def start(self):
-        logger.info("🚀 Starting peripheral controller...")
-
-        # Power on adapter
-        if not self.power_on_adapter():
-            logger.error("❌ Could not power on adapter.")
-            return False
-
-        # Make adapter discoverable/pairable
-        if not self.set_discoverable_pairable():
-            logger.error("❌ Could not make adapter discoverable.")
-            return False
-
-        # Register agent
-        if not self.register_agent():
-            logger.error("❌ Could not register agent.")
-            return False
-
-        # Register GATT application
-        if not self.register_gatt_application():
-            logger.error("❌ Peripheral failed to start.")
-            return False
-        
-        connected = self.list_connected_devices()
-        for c in connected:
-            print(c[0])
-            #self.trust_device(c[0])
-            
-        logger.debug(f"Connected devices: {self.list_connected_devices()}")
-        
-        return True
-
-    def stop(self):
-        result = self.power_off_adapter()
-        self.is_on = False
-        logger.info("🛑 Peripheral stopped.")
-        return result
-
-    def get_status(self):
-        return {'is_on': self.is_on}
-    
     def list_connected_devices(self):
+        """
+        Return a list of currently connected devices as (addr, name, path).
+        """
         connected = []
         objects = self.manager.GetManagedObjects()
         for path, ifaces in objects.items():
@@ -356,47 +436,62 @@ class PeripheralController:
                     addr = props.get("Address")
                     name = props.get("Name")
                     connected.append((addr, name, path))
-
         return connected
 
-class Advertisement(dbus.service.Object):
-    def __init__(self, bus, index, config, advertising_type="peripheral"):
-        self.path = ADVERTISEMENT_PATH_BASE + str(index)
-        self.bus = bus
-        self.ad_type = advertising_type
-        self.service_uuids = [svc["uuid"] for svc in config["peripheral"]["services"]]  # HID Service UUID
-        self.local_name = config["peripheral"].get("localName", "HID Peripheral")
-        self.manufacturer_data = {}
-        self.solicit_uuids = None
-        self.service_data = {}
-        self.include_tx_power = True
-        self.appearance = config["peripheral"].get("appearance", 960)
-        super().__init__(bus, self.path)
+    # ----------------------------------------------------------------------
+    # Lifecycle management
+    # ----------------------------------------------------------------------
 
-    def get_properties(self):
-        # Removed unsupported "Flags" property (BlueZ rejects it)
-        return {
-            LE_ADVERTISEMENT_IFACE: {
-                "Type": dbus.String(self.ad_type),
-                "ServiceUUIDs": dbus.Array([dbus.String(u) for u in self.service_uuids], signature="s"),
-                "LocalName": dbus.String(self.local_name),
-                "IncludeTxPower": dbus.Boolean(self.include_tx_power),
-                "Appearance": dbus.UInt16(self.appearance),
-            }
-        }
+    def start(self):
+        """
+        Start the peripheral: power adapter, set discoverable/pairable,
+        register agent, GATT application, and advertisement.
+        """
+        logger.info("🚀 Starting peripheral controller...")
 
+        if not self.power_on_adapter():
+            logger.error("❌ Could not power on adapter.")
+            return False
 
-    def get_path(self):
-        return dbus.ObjectPath(self.path)
+        if not self.set_discoverable_pairable():
+            logger.error("❌ Could not make adapter discoverable.")
+            return False
 
-    @dbus.service.method(dbus.PROPERTIES_IFACE, in_signature="s", out_signature="a{sv}")
-    def GetAll(self, interface):
-        if interface != LE_ADVERTISEMENT_IFACE:
-            raise dbus.exceptions.DBusException(
-                "org.freedesktop.DBus.Error.InvalidArgs: Invalid interface %s" % interface
-            )
-        return self.get_properties()[LE_ADVERTISEMENT_IFACE]
+        if not self.register_agent():
+            logger.error("❌ Could not register agent.")
+            return False
 
-    @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature="", out_signature="")
-    def Release(self):
-        print("Advertisement released")
+        if not self.register_gatt_application():
+            logger.error("❌ Peripheral failed to start.")
+            return False
+
+        if not self.register_advertisement():
+            logger.error("❌ Could not register advertisement.")
+            return False
+
+        self.is_on = True
+
+        connected = self.list_connected_devices()
+        for addr, name, path in connected:
+            logger.info(f"Already connected: {addr} ({name})")
+            # Optionally trust automatically:
+            self.trust_device(addr)
+
+        logger.debug(f"Connected devices: {connected}")
+        return True
+
+    def stop(self):
+        """
+        Stop the peripheral: unregister advertisement and power off adapter.
+        """
+        self.unregister_advertisement()
+        result = self.power_off_adapter()
+        self.is_on = False
+        logger.info("🛑 Peripheral stopped.")
+        return result
+
+    def get_status(self):
+        """
+        Return current status of the peripheral.
+        """
+        return {'is_on': self.is_on}

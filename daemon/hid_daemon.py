@@ -19,11 +19,20 @@ from constants import (
     HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DAEMON_IFACE, DAEMON_BUS_NAME
 )
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logging.basicConfig(level=logging.DEBUG,
+                    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("hid_daemon")
 
 
+# ----------------------------------------------------------------------
+# DBus Service
+# ----------------------------------------------------------------------
+
 class HIDPeripheralService(dbus.service.Object):
+    """
+    DBus service exposing HID peripheral status and control.
+    """
+
     def __init__(self, bus, services, controller, trackers, report_builder):
         super().__init__(bus, DAEMON_OBJ_PATH)
         self.bus = bus
@@ -31,11 +40,52 @@ class HIDPeripheralService(dbus.service.Object):
         self.controller = controller
         self.trackers = trackers
         self.report_builder = report_builder
-        self.connected_devices = []
+        self.connected_devices = []  # placeholder, can be updated from controller
+
+    # ------------------------------------------------------------------
+    # DBus methods
+    # ------------------------------------------------------------------
 
     @dbus.service.method(DAEMON_IFACE, out_signature='s')
     def GetStatus(self):
-        status = {
+        """Return JSON status of controller, services, and devices."""
+        return json.dumps(self._serialize_status())
+
+    @dbus.service.method(DAEMON_IFACE)
+    def Toggle(self):
+        """Toggle controller on/off and emit status update."""
+        if self.controller.is_on:
+            self.controller.stop()
+        else:
+            self.controller.start()
+        self.StatusUpdated(self.GetStatus())
+
+    @dbus.service.method(DAEMON_IFACE, in_signature='sb')
+    def SetNotify(self, characteristic_uuid, enable):
+        """Enable/disable notifications for a characteristic by UUID."""
+        for svc in self.services:
+            for ch in svc.characteristics:
+                if ch.uuid == characteristic_uuid:
+                    ch.set_notifying(bool(enable))
+                    logger.info(f"SetNotify: {characteristic_uuid} -> {enable}")
+                    return
+        logger.warning(f"SetNotify: characteristic {characteristic_uuid} not found")
+
+    # ------------------------------------------------------------------
+    # DBus signals
+    # ------------------------------------------------------------------
+
+    @dbus.service.signal(DAEMON_IFACE, signature='s')
+    def StatusUpdated(self, status_json):
+        """Signal emitted when status changes."""
+        pass
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _serialize_status(self):
+        return {
             'is_on': self.controller.is_on,
             'connected_devices': self.connected_devices,
             'services': [
@@ -58,27 +108,121 @@ class HIDPeripheralService(dbus.service.Object):
                 } for svc in self.services
             ]
         }
-        return json.dumps(status)
 
-    @dbus.service.method(DAEMON_IFACE)
-    def Toggle(self):
-        if self.controller.is_on:
-            self.controller.stop()
-        else:
-            self.controller.start()
 
-    @dbus.service.method(DAEMON_IFACE, in_signature='sb')
-    def SetNotify(self, characteristic_uuid, enable):
+# ----------------------------------------------------------------------
+# HIDDaemon Orchestrator
+# ----------------------------------------------------------------------
+
+class HIDDaemon:
+    """
+    HIDDaemon orchestrates the HID peripheral:
+      - Starts the PeripheralController
+      - Validates and sets up input devices
+      - Creates the DBus HIDPeripheralService
+      - Schedules periodic report updates
+    """
+
+    def __init__(self, bus, services, controller, report_builder):
+        self.bus = bus
+        self.services = services
+        self.controller = controller
+        self.report_builder = report_builder
+
+        self.keyboard_dev = None
+        self.mouse_dev = None
+        self.keyboard_char = None
+        self.mouse_svc = None
+        self.daemon_service = None
+        self.last_kb_report = None
+
+    # ------------------------------------------------------------------
+    # Initialization steps
+    # ------------------------------------------------------------------
+
+    def start(self):
+        """Run all initialization steps in order."""
+        if not self._start_controller():
+            return False
+        if not self._setup_input_devices():
+            return False
+        self._create_dbus_service()
+        self._schedule_report_updates()
+        logger.info("HID peripheral daemon running.")
+        return True
+
+    def _start_controller(self):
+        """Start the peripheral controller and handle errors."""
+        if not self.controller.start():
+            logger.error("Peripheral controller failed to start, exiting.")
+            GLib.MainLoop().quit()
+            return False
+        return True
+
+    def _setup_input_devices(self):
+        """Validate and initialize input devices."""
+        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
+        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
+
+        if not validate_input_device(kdev_path, "keyboard"):
+            logger.error("Keyboard device not valid, exiting.")
+            GLib.MainLoop().quit()
+            return False
+
+        if not validate_input_device(mdev_path, "mouse"):
+            logger.error("Mouse device not valid, exiting.")
+            GLib.MainLoop().quit()
+            return False
+
+        self.keyboard_dev = EvdevTracker(kdev_path)
+        self.mouse_dev = EvdevTracker(mdev_path)
+        return True
+
+    def _create_dbus_service(self):
+        """Create the HIDPeripheralService and locate HID characteristics."""
+        self.daemon_service = HIDPeripheralService(
+            bus=self.bus,
+            services=self.services,
+            controller=self.controller,
+            trackers={'keyboard': self.keyboard_dev, 'mouse': self.mouse_dev},
+            report_builder=self.report_builder
+        )
+
         for svc in self.services:
             for ch in svc.characteristics:
-                if ch.uuid == characteristic_uuid:
-                    ch.set_notifying(bool(enable))
-                    return
+                name = (ch.name or '').lower()
+                if 'keyboard' in name and 'report' in name:
+                    self.keyboard_char = ch
+                elif 'mouse' in name and 'report' in name:
+                    self.mouse_svc = HIDMouseService(
+                        os.environ.get('MOUSE_DEV', '/dev/input/event1'), ch
+                    )
 
-    @dbus.service.signal(DAEMON_IFACE, signature='s')
-    def StatusUpdated(self, status_json):
-        pass
+    def _schedule_report_updates(self):
+        """Schedule periodic polling of input devices and report updates."""
+        def update_reports():
+            try:
+                self.keyboard_dev.poll()
+                if self.mouse_svc:
+                    self.mouse_svc.poll()
+                if self.keyboard_char:
+                    kb_report = self.report_builder.build_keyboard_report(
+                        list(self.keyboard_dev.pressed_keys)
+                    )
+                    if kb_report != self.last_kb_report:
+                        self.keyboard_char.update_value(kb_report)
+                        self.last_kb_report = kb_report
+                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+            except Exception as e:
+                logger.exception("Error in update_reports: %s", e)
+            return True
 
+        GLib.timeout_add(20, update_reports)
+
+
+# ----------------------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------------------
 
 def validate_input_device(dev_path, device_type):
     if not os.path.exists(dev_path):
@@ -93,6 +237,10 @@ def validate_input_device(dev_path, device_type):
         return False
 
 
+# ----------------------------------------------------------------------
+# Main entry point
+# ----------------------------------------------------------------------
+
 def main():
     logger.info("Starting HID daemon")
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
@@ -105,74 +253,15 @@ def main():
     cfg = load_yaml_config(peripheral_yaml)
     report_builder = HIDReportBuilder(report_yaml)
 
-    services = [HIDService(bus, i, svc_cfg) for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
-    
-    app = HIDApplication(bus, services, path=HID_APP_PATH)
+    services = [HIDService(bus, i, svc_cfg)
+                for i, svc_cfg in enumerate(cfg['peripheral']['services'])]
 
+    app = HIDApplication(bus, services, path=HID_APP_PATH)
     controller = PeripheralController(bus, services, cfg, app_path=HID_APP_PATH)
 
+    daemon = HIDDaemon(bus, services, controller, report_builder)
 
-    # Defer controller.start() until the main loop is active
-    def init_controller():
-        if not controller.start():
-            logger.error("Peripheral controller failed to start, exiting.")
-            sys.exit(1)
-
-        controller.register_advertisement()
-        
-        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
-        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
-
-        if not validate_input_device(kdev_path, "keyboard"):
-            logger.error("Keyboard device not valid, exiting.")
-            sys.exit(1)
-
-        if not validate_input_device(mdev_path, "mouse"):
-            logger.error("Mouse device not valid, exiting.")
-            sys.exit(1)
-
-        keyboard_dev = EvdevTracker(kdev_path)
-        mouse_dev = EvdevTracker(mdev_path)
-
-        daemon = HIDPeripheralService(
-            bus=bus,
-            services=services,
-            controller=controller,
-            trackers={'keyboard': keyboard_dev, 'mouse': mouse_dev},
-            report_builder=report_builder
-        )
-
-        keyboard_char = None
-        mouse_char = None
-        mouse_svc = None
-        for svc in services:
-            for ch in svc.characteristics:
-                name = (ch.name or '').lower()
-                if 'keyboard' in name and 'report' in name:
-                    keyboard_char = ch
-                elif 'mouse' in name and 'report' in name:
-                    mouse_char = ch
-                    mouse_svc = HIDMouseService(mdev_path, ch)
-
-        def update_reports():
-            try:
-                keyboard_dev.poll()
-                if mouse_svc:
-                    mouse_svc.poll()
-                if keyboard_char:
-                    kb_report = report_builder.build_keyboard_report(list(keyboard_dev.pressed_keys))
-                    keyboard_char.update_value(kb_report)
-                daemon.StatusUpdated(daemon.GetStatus())
-            except Exception as e:
-                logger.exception("Error in update_reports: %s", e)
-            return True
-
-        GLib.timeout_add(20, update_reports)
-        logger.info("HID peripheral daemon running.")
-        return False  # run once
-
-    GLib.idle_add(init_controller)
-
+    GLib.idle_add(daemon.start)
     GLib.MainLoop().run()
 
 
