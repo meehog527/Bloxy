@@ -11,11 +11,11 @@ from constants import (
     HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, AGENT_PATH, ADAPTER_PATH,
     BLUEZ_SERVICE_NAME, GATT_MANAGER_IFACE, LE_ADVERTISEMENT_IFACE, LE_ADVERTISING_MANAGER_IFACE, HCI_DISCONNECT_REASONS,
     DEVICE_IFACE, ADAPTER_IFACE, AGENT_IFACE, DBUS_OBJMGR_IFACE, AGENT_MANAGER_IFACE, BLUEZ_SERVICE_PATH,
-    AUTHORIZATION, ADVERTISEMENT_PATH_BASE
+    AUTHORIZATION, ADVERTISEMENT_PATH_BASE, LOG_LEVEL, LOG_FORMAT
 )
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-logger = logging.getLogger("PeripheralController")
+logging.basicConfig(LOG_LEVEL, format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 class Agent(dbus.service.Object):
@@ -25,6 +25,7 @@ class Agent(dbus.service.Object):
     """
 
     def __init__(self, bus):
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, AGENT_PATH)
 
     # ------------------------------------------------------------------
@@ -34,47 +35,47 @@ class Agent(dbus.service.Object):
     @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
     def Release(self):
         """Called when the agent is unregistered or released by BlueZ."""
-        logger.info("Agent released")
+        self.logger.info("Agent released")
 
     @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
         """Authorize a service connection request."""
-        logger.info(f"AuthorizeService: {device} {uuid}")
+        self.logger.info(f"AuthorizeService: {device} {uuid}")
         # Accept by returning normally
         # To reject: raise dbus.exceptions.DBusException("org.bluez.Error.Rejected", "Unauthorized")
 
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="s")
     def RequestPinCode(self, device):
         """Request a PIN code (legacy pairing)."""
-        logger.info(f"RequestPinCode: {device}")
+        self.logger.info(f"RequestPinCode: {device}")
         return dbus.String("0000")
 
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="u")
     def RequestPasskey(self, device):
         """Request a numeric passkey (for SSP pairing)."""
-        logger.info(f"RequestPasskey: {device}")
+        self.logger.info(f"RequestPasskey: {device}")
         return dbus.UInt32(123456)
 
     @dbus.service.method(AGENT_IFACE, in_signature="ouq", out_signature="")
     def DisplayPasskey(self, device, passkey, entered):
         """Display a passkey with number of entered digits (for SSP)."""
-        logger.info(f"DisplayPasskey: {device} passkey={passkey} entered={entered}")
+        self.logger.info(f"DisplayPasskey: {device} passkey={passkey} entered={entered}")
 
     @dbus.service.method(AGENT_IFACE, in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
         """Request confirmation of a displayed passkey."""
-        logger.info(f"RequestConfirmation: {device} passkey={passkey}")
+        self.logger.info(f"RequestConfirmation: {device} passkey={passkey}")
         # Accept by returning normally
 
     @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="")
     def RequestAuthorization(self, device):
         """Request authorization for a device before pairing completes."""
-        logger.info(f"RequestAuthorization: {device}")
+        self.logger.info(f"RequestAuthorization: {device}")
 
     @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
     def Cancel(self):
         """Called when the agent request is canceled by BlueZ."""
-        logger.info("Agent request canceled")
+        self.logger.info("Agent request canceled")
 
     # ------------------------------------------------------------------
     # Additional methods for KeyboardDisplay capability
@@ -83,7 +84,7 @@ class Agent(dbus.service.Object):
     @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
     def DisplayPinCode(self, device, pincode):
         """Display a PIN code to the user (KeyboardDisplay capability)."""
-        logger.info(f"DisplayPinCode: {device} pincode={pincode}")
+        self.logger.info(f"DisplayPinCode: {device} pincode={pincode}")
 
 class Advertisement(dbus.service.Object):
     """
@@ -103,9 +104,10 @@ class Advertisement(dbus.service.Object):
         self.service_data = {}
         self.include_tx_power = True
         self.appearance = config["peripheral"].get("appearance", 960)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, self.path)
 
-        logger.debug(
+        self.logger.debug(
             f"Advertisement initialized at {self.path} "
             f"with services={self.service_uuids}, local_name={self.local_name}"
         )
@@ -153,7 +155,7 @@ class Advertisement(dbus.service.Object):
     @dbus.service.method(LE_ADVERTISEMENT_IFACE, in_signature="", out_signature="")
     def Release(self):
         """Called when the advertisement is released by BlueZ."""
-        logger.info(f"Advertisement released at {self.path}")
+        self.logger.info(f"Advertisement released at {self.path}")
 
 class PeripheralController:
     """
@@ -169,10 +171,7 @@ class PeripheralController:
     def __init__(self, bus, services, config, app_path=HID_APP_PATH):
         # --- Internal state ---
         self.bus = bus
-        self.manager = dbus.Interface(
-            self.bus.get_object(BLUEZ_SERVICE_NAME, "/"),
-            DBUS_OBJMGR_IFACE
-        )
+        self.manager = dbus.Interface(self.bus.get_object(BLUEZ_SERVICE_NAME, "/"), DBUS_OBJMGR_IFACE)
         self.services = services
         self.app_path = app_path
         self.adapter_path = ADAPTER_PATH
@@ -181,6 +180,8 @@ class PeripheralController:
         self.config = config
         self.event_log = []
         self.advertisement = None
+
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         # Subscribe to Device1 property changes
         self.bus.add_signal_receiver(
@@ -229,12 +230,12 @@ class PeripheralController:
                 "value": value,
                 "timestamp": time.time()
             }
-            logger.info(f"🔔 Property changed: {log}")
+            self.logger.info(f"🔔 Property changed: {log}")
             self.event_log.append(log)
 
     def _handle_device_connected(self, addr, path, props):
         """Handle a device connection event."""
-        logger.info(f"✅ Device connected: {addr}")
+        self.logger.info(f"✅ Device connected: {addr}")
 
         dev_obj = self.bus.get_object(BLUEZ_SERVICE_NAME, path)
         dev_props = dbus.Interface(dev_obj, DBUS_PROP_IFACE)
@@ -243,20 +244,20 @@ class PeripheralController:
         # Mark Trusted
         try:
             props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
-            logger.info(f"✅ Device trusted: {addr}")
+            self.logger.info(f"✅ Device trusted: {addr}")
         except Exception as e:
-            logger.warning(f"⚠️ Could not set Trusted for {addr}: {e}")
+            self.logger.warning(f"⚠️ Could not set Trusted for {addr}: {e}")
 
         # Pair if not already paired
         paired = dev_props.Get(DEVICE_IFACE, "Paired")
         if not paired:
             try:
-                logger.info("[*] Not paired yet, calling Pair()")
+                self.logger.info("[*] Not paired yet, calling Pair()")
                 dev_iface.Pair()
             except dbus.exceptions.DBusException as e:
-                logger.error(f"[!] Pair() failed: {e}")
+                self.logger.error(f"[!] Pair() failed: {e}")
         else:
-            logger.debug("[*] Device already paired, skipping Pair()")
+            self.logger.debug("[*] Device already paired, skipping Pair()")
 
         # Send dummy HID reports
         self._send_dummy_reports()
@@ -267,7 +268,7 @@ class PeripheralController:
             reason = props.Get(DEVICE_IFACE, "DisconnectReason")
         except Exception:
             reason = "unknown"
-        logger.info(f"❌ Device disconnected: {addr} reason={reason}")
+        self.logger.info(f"❌ Device disconnected: {addr} reason={reason}")
 
     def _send_dummy_reports(self):
         """Send initial empty HID reports for keyboard/mouse."""
@@ -278,14 +279,14 @@ class PeripheralController:
                     if 'keyboard' in name and 'report' in name:
                         empty_report = [0x00] * 8
                         ch.update_value(empty_report)
-                        logger.info("Sent dummy empty keyboard report")
+                        self.logger.info("Sent dummy empty keyboard report")
                     elif 'mouse' in name and 'report' in name:
                         empty_report = [0x00] * 4
                         ch.update_value(empty_report)
-                        logger.info("Sent dummy empty mouse report")
+                        self.logger.info("Sent dummy empty mouse report")
         except Exception as e:
-            logger.exception("Error sending dummy report: %s", e)
-            
+            self.logger.exception("Error sending dummy report: %s", e)
+
     # ----------------------------------------------------------------------
     # Adapter control
     # ----------------------------------------------------------------------
@@ -295,10 +296,10 @@ class PeripheralController:
             adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             props = dbus.Interface(adapter, DBUS_PROP_IFACE)
             props.Set(ADAPTER_IFACE, "Powered", dbus.Boolean(True))
-            logger.info("✅ Bluetooth adapter powered on.")
+            self.logger.info("✅ Bluetooth adapter powered on.")
             return True
         except Exception as e:
-            logger.error(f"❌ Failed to power on adapter: {e}")
+            self.logger.error(f"❌ Failed to power on adapter: {e}")
             return False
 
     def power_off_adapter(self):
@@ -306,10 +307,10 @@ class PeripheralController:
             adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             props = dbus.Interface(adapter, DBUS_PROP_IFACE)
             props.Set(ADAPTER_IFACE, "Powered", dbus.Boolean(False))
-            logger.info("✅ Bluetooth adapter powered off.")
+            self.logger.info("✅ Bluetooth adapter powered off.")
             return True
         except Exception as e:
-            logger.error(f"❌ Failed to power off adapter: {e}")
+            self.logger.error(f"❌ Failed to power off adapter: {e}")
             return False
 
     def set_discoverable_pairable(self):
@@ -318,10 +319,10 @@ class PeripheralController:
             props = dbus.Interface(adapter, DBUS_PROP_IFACE)
             props.Set(ADAPTER_IFACE, "Discoverable", dbus.Boolean(True))
             props.Set(ADAPTER_IFACE, "Pairable", dbus.Boolean(True))
-            logger.info("✅ Adapter set to discoverable and pairable.")
+            self.logger.info("✅ Adapter set to discoverable and pairable.")
             return True
         except Exception as e:
-            logger.error(f"❌ Failed to set discoverable/pairable: {e}")
+            self.logger.error(f"❌ Failed to set discoverable/pairable: {e}")
             return False
 
     # ----------------------------------------------------------------------
@@ -336,10 +337,10 @@ class PeripheralController:
             )
             manager.RegisterAgent(AGENT_PATH, AUTHORIZATION)
             manager.RequestDefaultAgent(AGENT_PATH)
-            logger.info("✅ Agent registered and set as default.")
+            self.logger.info("✅ Agent registered and set as default.")
             return True
         except Exception as e:
-            logger.error(f"❌ Failed to register agent: {e}")
+            self.logger.error(f"❌ Failed to register agent: {e}")
             return False
 
     # ----------------------------------------------------------------------
@@ -347,30 +348,30 @@ class PeripheralController:
     # ----------------------------------------------------------------------
 
     def register_gatt_application(self):
-        logger.debug("=== Register GATT Application ===")
-        logger.debug("Adapter path: %s", self.adapter_path)
-        logger.debug("App path: %s", self.app_path)
-        logger.debug("Bus name owner: %s", self.bus.get_unique_name())
+        self.logger.debug("=== Register GATT Application ===")
+        self.logger.debug("Adapter path: %s", self.adapter_path)
+        self.logger.debug("App path: %s", self.app_path)
+        self.logger.debug("Bus name owner: %s", self.bus.get_unique_name())
 
         try:
             adapter_obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
             gatt_manager = dbus.Interface(adapter_obj, GATT_MANAGER_IFACE)
-            logger.debug("GattManager1 interface found on adapter.")
+            self.logger.debug("GattManager1 interface found on adapter.")
         except dbus.DBusException as e:
-            logger.error("Could not get GattManager1 on adapter: %s", e)
+            self.logger.error("Could not get GattManager1 on adapter: %s", e)
             return False
 
         try:
             gatt_manager.RegisterApplication(
                 self.app_path,
                 {},
-                reply_handler=lambda: logger.info("✅ RegisterApplication succeeded (async reply)."),
-                error_handler=lambda e: logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)
+                reply_handler=lambda: self.logger.info("✅ RegisterApplication succeeded (async reply)."),
+                error_handler=lambda e: self.logger.error("❌ RegisterApplication failed: %s (%s)", e, type(e).__name__)
             )
-            logger.debug("RegisterApplication call sent, waiting for reply...")
+            self.logger.debug("RegisterApplication call sent, waiting for reply...")
             return True
         except dbus.DBusException as e:
-            logger.error("Error calling RegisterApplication: %s", e)
+            self.logger.error("Error calling RegisterApplication: %s", e)
             return False
 
     # ----------------------------------------------------------------------
@@ -386,12 +387,12 @@ class PeripheralController:
             ad_manager.RegisterAdvertisement(
                 self.advertisement.get_path(),
                 {},
-                reply_handler=lambda: logger.info("✅ Advertising registered: %s", self.advertisement.service_uuids),
-                error_handler=lambda e: logger.error("❌ Failed to register advertisement: %s", e),
+                reply_handler=lambda: self.logger.info("✅ Advertising registered: %s", self.advertisement.service_uuids),
+                error_handler=lambda e: self.logger.error("❌ Failed to register advertisement: %s", e),
             )
             return True
         except Exception as e:
-            logger.error(f"❌ Could not register advertisement: {e}")
+            self.logger.error(f"❌ Could not register advertisement: {e}")
             return False
 
     def unregister_advertisement(self):
@@ -400,9 +401,9 @@ class PeripheralController:
                 adapter = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
                 ad_manager = dbus.Interface(adapter, LE_ADVERTISING_MANAGER_IFACE)
                 ad_manager.UnregisterAdvertisement(self.advertisement.get_path())
-                logger.info("🛑 Advertisement unregistered.")
+                self.logger.info("🛑 Advertisement unregistered.")
         except Exception as e:
-            logger.error(f"❌ Failed to unregister advertisement: {e}")
+            self.logger.error(f"❌ Failed to unregister advertisement: {e}")
 
     # ----------------------------------------------------------------------
     # Device management
@@ -417,10 +418,10 @@ class PeripheralController:
             device = self.bus.get_object(BLUEZ_SERVICE_NAME, device_path)
             props = dbus.Interface(device, DBUS_PROP_IFACE)
             props.Set(DEVICE_IFACE, "Trusted", dbus.Boolean(True))
-            logger.info(f"✅ Device {mac_address} trusted.")
+            self.logger.info(f"✅ Device {mac_address} trusted.")
             return True
         except Exception as e:
-            logger.error(f"❌ Failed to trust device {mac_address}: {e}")
+            self.logger.error(f"❌ Failed to trust device {mac_address}: {e}")
             return False
 
     def list_connected_devices(self):
@@ -447,37 +448,37 @@ class PeripheralController:
         Start the peripheral: power adapter, set discoverable/pairable,
         register agent, GATT application, and advertisement.
         """
-        logger.info("🚀 Starting peripheral controller...")
+        self.logger.info("🚀 Starting peripheral controller...")
 
         if not self.power_on_adapter():
-            logger.error("❌ Could not power on adapter.")
+            self.logger.error("❌ Could not power on adapter.")
             return False
 
         if not self.set_discoverable_pairable():
-            logger.error("❌ Could not make adapter discoverable.")
+            self.logger.error("❌ Could not make adapter discoverable.")
             return False
 
         if not self.register_agent():
-            logger.error("❌ Could not register agent.")
+            self.logger.error("❌ Could not register agent.")
             return False
 
         if not self.register_gatt_application():
-            logger.error("❌ Peripheral failed to start.")
+            self.logger.error("❌ Peripheral failed to start.")
             return False
 
         if not self.register_advertisement():
-            logger.error("❌ Could not register advertisement.")
+            self.logger.error("❌ Could not register advertisement.")
             return False
 
         self.is_on = True
 
         connected = self.list_connected_devices()
         for addr, name, path in connected:
-            logger.info(f"Already connected: {addr} ({name})")
+            self.logger.info(f"Already connected: {addr} ({name})")
             # Optionally trust automatically:
             self.trust_device(addr)
 
-        logger.debug(f"Connected devices: {connected}")
+        self.logger.debug(f"Connected devices: {connected}")
         return True
 
     def stop(self):
@@ -487,7 +488,7 @@ class PeripheralController:
         self.unregister_advertisement()
         result = self.power_off_adapter()
         self.is_on = False
-        logger.info("🛑 Peripheral stopped.")
+        self.logger.info("🛑 Peripheral stopped.")
         return result
 
     def get_status(self):

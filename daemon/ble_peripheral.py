@@ -8,13 +8,11 @@ import yaml
 
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
-    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DBUS_ERROR_INVARG, DBUS_ERROR_PROPRO,DBUS_OBJMGR_IFACE
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DBUS_ERROR_INVARG, DBUS_ERROR_PROPRO,DBUS_OBJMGR_IFACE,
+    LOG_LEVEL, LOG_FORMAT
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +26,7 @@ class GattObject(dbus.service.Object):
 
     def __init__(self, bus, path):
         # --- Internal state ---
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, path)
         self.path = path
 
@@ -81,7 +80,7 @@ class GattObject(dbus.service.Object):
         Optional cleanup hook.
         Called if BlueZ ever wants to release this object.
         """
-        logger.debug(f"{self.path} released")
+        self.logger.debug(f"{self.path} released")
 
     # ----------------------------------------------------------------------
     # Helpers for subclasses (to override or call internally)
@@ -113,7 +112,7 @@ class GattObject(dbus.service.Object):
         try:
             self.PropertiesChanged(self.dbus_interface, props, [])
         except Exception as e:
-            logger.warning(f"Failed to emit PropertiesChanged for {self.path}: {e}")
+            self.logger.warning(f"Failed to emit PropertiesChanged for {self.path}: {e}")
 
 
 class HIDDescriptor(GattObject):
@@ -134,9 +133,10 @@ class HIDDescriptor(GattObject):
 
         # Deterministic path under parent characteristic
         path = f'{char.path}/desc{index}'
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, path)
 
-        logger.debug(
+        self.logger.debug(
             f"HIDDescriptor {self.uuid} initialized at {self.path} "
             f"for characteristic {self.char.name}"
         )
@@ -164,7 +164,7 @@ class HIDDescriptor(GattObject):
     @dbus.service.method(GATT_DESC_IFACE, in_signature='a{sv}', out_signature='ay')
     def ReadValue(self, options):
         """BlueZ calls this when the host reads the descriptor value."""
-        logger.debug(f"Descriptor {self.uuid}: ReadValue called, returning {self.value}")
+        self.logger.debug(f"Descriptor {self.uuid}: ReadValue called, returning {self.value}")
         return dbus.Array(self.value, signature='y')
 
     @dbus.service.method(GATT_DESC_IFACE, in_signature='aya{sv}', out_signature='')
@@ -185,7 +185,7 @@ class HIDDescriptor(GattObject):
                 # Reflect the new value back to the host
                 self.update_property('Value', dbus.Array(self.value, signature='y'))
 
-                logger.info(
+                self.logger.info(
                     f'CCCD write for {self.char.name}: '
                     f'notifications {"enabled" if notify_enabled else "disabled"}'
                 )
@@ -193,10 +193,10 @@ class HIDDescriptor(GattObject):
                 # Generic descriptor write
                 self.value = new_val
                 self.update_property('Value', dbus.Array(self.value, signature='y'))
-                logger.debug(f"Descriptor {self.uuid} updated value: {self.value}")
+                self.logger.debug(f"Descriptor {self.uuid} updated value: {self.value}")
 
         except Exception as e:
-            logger.exception(f"Error in descriptor WriteValue ({self.uuid}): {e}")
+            self.logger.exception(f"Error in descriptor WriteValue ({self.uuid}): {e}")
 
     # ----------------------------------------------------------------------
     # Internal helpers (Not called by BlueZ)
@@ -225,13 +225,14 @@ class HIDCharacteristic(GattObject):
 
         # Deterministic path under parent service
         path = f'{service.path}/char{index}'
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, path)
 
         # Build child descriptors
         for i, desc_cfg in enumerate(config.get('descriptors', [])):
             self.descriptors.append(HIDDescriptor(bus, i, self, desc_cfg))
 
-        logger.debug(
+        self.logger.debug(
             f"HIDCharacteristic {self.uuid} ({self.name}) initialized at {self.path} "
             f"with {len(self.descriptors)} descriptors"
         )
@@ -270,7 +271,7 @@ class HIDCharacteristic(GattObject):
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='a{sv}', out_signature='ay')
     def ReadValue(self, options):
         """BlueZ calls this when the host reads the characteristic value."""
-        logger.debug(f"{self.name}: ReadValue called, returning {self.value}")
+        self.logger.debug(f"{self.name}: ReadValue called, returning {self.value}")
         return dbus.Array(self.value, signature='y')
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='aya{sv}', out_signature='')
@@ -278,7 +279,7 @@ class HIDCharacteristic(GattObject):
         """BlueZ calls this when the host writes to the characteristic."""
         self.value = [dbus.Byte(int(b) & 0xFF) for b in value]
         self.update_property('Value', dbus.Array(self.value, signature='y'))
-        logger.debug(f"{self.name}: WriteValue called, new value {self.value}")
+        self.logger.debug(f"{self.name}: WriteValue called, new value {self.value}")
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='', out_signature='')
     def StartNotify(self):
@@ -317,7 +318,7 @@ class HIDCharacteristic(GattObject):
         if self.notifying != enabled:
             self.notifying = enabled
             self.update_property('Notifying', dbus.Boolean(self.notifying))
-            logger.debug(f"{self.name}: Notifying set to {self.notifying}")
+            self.logger.debug(f"{self.name}: Notifying set to {self.notifying}")
 
     def update_value(self, new_value_bytes):
         """
@@ -329,7 +330,7 @@ class HIDCharacteristic(GattObject):
             return  # No change
         self.value = new_value
         self.update_property('Value', dbus.Array(self.value, signature='y'))
-        logger.debug(f"{self.name}: Value updated to {self.value}")
+        self.logger.debug(f"{self.name}: Value updated to {self.value}")
 
 
 class HIDService(GattObject):
@@ -351,13 +352,14 @@ class HIDService(GattObject):
 
         # Deterministic service path under the app root
         self.path = f"{HID_SERVICE_BASE}{index}"
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, self.path)
 
         # Build child characteristics
         for i, char_cfg in enumerate(config.get('characteristics', [])):
             self.characteristics.append(HIDCharacteristic(bus, i, self, char_cfg))
 
-        logger.debug(
+        self.logger.debug(
             f"HIDService {self.uuid} initialized at {self.path} "
             f"with {len(self.characteristics)} characteristics"
         )
@@ -398,7 +400,7 @@ class HIDService(GattObject):
         OPTIONAL BlueZ hook.
         Called if BlueZ ever wants to release this service.
         """
-        logger.debug(f"Service {self.uuid} released at {self.path}")
+        self.logger.debug(f"Service {self.uuid} released at {self.path}")
 
     # ----------------------------------------------------------------------
     # Internal helpers (Not called by BlueZ)
@@ -426,9 +428,10 @@ class HIDApplication(dbus.service.Object):
         # --- Internal state ---
         self.path = path
         self.services = services
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(bus, self.path)
 
-        logger.debug(
+        self.logger.debug(
             "HIDApplication initialized at %s with %d services",
             self.path, len(self.services)
         )
@@ -451,7 +454,7 @@ class HIDApplication(dbus.service.Object):
             # Each service returns a dict keyed by dbus.ObjectPath
             response.update(svc.get_managed_object())
 
-        logger.debug("GetManagedObjects called, returning %d objects", len(response))
+        self.logger.debug("GetManagedObjects called, returning %d objects", len(response))
         return response
 
     @dbus.service.method(DBUS_OBJMGR_IFACE, in_signature='', out_signature='')
@@ -459,7 +462,7 @@ class HIDApplication(dbus.service.Object):
         """
         OPTIONAL: Cleanup hook if BlueZ ever calls Release on the application.
         """
-        logger.debug(f"HIDApplication released at {self.path}")
+        self.logger.debug(f"HIDApplication released at {self.path}")
 
     # ----------------------------------------------------------------------
     # Internal helpers (Not called by BlueZ)
@@ -470,7 +473,7 @@ class HIDApplication(dbus.service.Object):
         Add a new service to the application at runtime.
         """
         self.services.append(service)
-        logger.debug(
+        self.logger.debug(
             "Service %s added to HIDApplication at %s",
             getattr(service, 'uuid', 'unknown'), self.path
         )
@@ -482,7 +485,7 @@ class HIDApplication(dbus.service.Object):
         before = len(self.services)
         self.services = [s for s in self.services if s.uuid.lower() != uuid.lower()]
         after = len(self.services)
-        logger.debug(
+        self.logger.debug(
             "Service %s removed from HIDApplication at %s (before=%d, after=%d)",
             uuid, self.path, before, after
         )

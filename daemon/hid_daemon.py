@@ -16,12 +16,11 @@ from dbus_utils import PeripheralController
 
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
-    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DAEMON_IFACE, DAEMON_BUS_NAME
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DAEMON_IFACE, DAEMON_BUS_NAME, LOG_LEVEL, LOG_FORMAT
 )
 
-logging.basicConfig(level=logging.DEBUG,
-                    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-logger = logging.getLogger("hid_daemon")
+logging.basicConfig(LOG_LEVEL, format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------------------------------------
@@ -41,6 +40,7 @@ class HIDPeripheralService(dbus.service.Object):
         self.trackers = trackers
         self.report_builder = report_builder
         self.connected_devices = []  # placeholder, can be updated from controller
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     # ------------------------------------------------------------------
     # DBus methods
@@ -67,9 +67,9 @@ class HIDPeripheralService(dbus.service.Object):
             for ch in svc.characteristics:
                 if ch.uuid == characteristic_uuid:
                     ch.set_notifying(bool(enable))
-                    logger.info(f"SetNotify: {characteristic_uuid} -> {enable}")
+                    self.logger.info(f"SetNotify: {characteristic_uuid} -> {enable}")
                     return
-        logger.warning(f"SetNotify: characteristic {characteristic_uuid} not found")
+        self.logger.warning(f"SetNotify: characteristic {characteristic_uuid} not found")
 
     # ------------------------------------------------------------------
     # DBus signals
@@ -136,6 +136,8 @@ class HIDDaemon:
         self.daemon_service = None
         self.last_kb_report = None
 
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+
     # ------------------------------------------------------------------
     # Initialization steps
     # ------------------------------------------------------------------
@@ -148,13 +150,13 @@ class HIDDaemon:
             return False
         self._create_dbus_service()
         self._schedule_report_updates()
-        logger.info("HID peripheral daemon running.")
+        self.logger.info("HID peripheral daemon running.")
         return True
 
     def _start_controller(self):
         """Start the peripheral controller and handle errors."""
         if not self.controller.start():
-            logger.error("Peripheral controller failed to start, exiting.")
+            self.logger.error("Peripheral controller failed to start, exiting.")
             GLib.MainLoop().quit()
             return False
         return True
@@ -165,12 +167,12 @@ class HIDDaemon:
         mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
 
         if not validate_input_device(kdev_path, "keyboard"):
-            logger.error("Keyboard device not valid, exiting.")
+            self.logger.error("Keyboard device not valid, exiting.")
             GLib.MainLoop().quit()
             return False
 
         if not validate_input_device(mdev_path, "mouse"):
-            logger.error("Mouse device not valid, exiting.")
+            self.logger.error("Mouse device not valid, exiting.")
             GLib.MainLoop().quit()
             return False
 
@@ -214,7 +216,7 @@ class HIDDaemon:
                         self.last_kb_report = kb_report
                         self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
             except Exception as e:
-                logger.exception("Error in update_reports: %s", e)
+                self.logger.exception("Error in update_reports: %s", e)
             return True
 
         GLib.timeout_add(20, update_reports)
