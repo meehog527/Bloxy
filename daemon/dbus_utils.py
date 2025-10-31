@@ -402,3 +402,28 @@ class PeripheralController:
             self.logger.error(f"❌ Failed to remove cached device {mac_address}: {e}")
             return False
 
+    def list_cached_devices(self):
+        """
+        List all cached Bluetooth devices known to BlueZ.
+        Returns a list of (path, address, name, paired, trusted, connected).
+        """
+        devices = []
+        try:
+            mngr = dbus.Interface(
+                self.bus.get_object("org.bluez", "/"),
+                "org.freedesktop.DBus.ObjectManager"
+            )
+            objs = mngr.GetManagedObjects()
+            for path, ifaces in objs.items():
+                if "org.bluez.Device1" in ifaces:
+                    props = ifaces["org.bluez.Device1"]
+                    addr = props.get("Address")
+                    name = props.get("Name")
+                    paired = props.get("Paired")
+                    trusted = props.get("Trusted")
+                    connected = props.get("Connected")
+                    devices.append((path, addr, name, paired, trusted, connected))
+            return devices
+        except Exception as e:
+            self.logger.error(f"❌ Failed to list cached devices: {e}")
+            return []
