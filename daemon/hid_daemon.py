@@ -412,7 +412,8 @@ def repl_loop(daemon):
             mac = cmd.split(" ", 1)[1]
             print("Trust result:", daemon.controller.trust_device(mac))
         elif cmd == "cache-list":
-            print(daemon.controller.list_cached_devices())
+            devices = daemon.controller.list_cached_devices()
+            print(json.dumps(devices, indent=2))
         elif cmd.startswith("cache-clear "):
             mac = cmd.split(" ", 1)[1]
             daemon.controller.clear_cached_devices(mac)

@@ -405,7 +405,7 @@ class PeripheralController:
     def list_cached_devices(self):
         """
         List all cached Bluetooth devices known to BlueZ.
-        Returns a list of (path, address, name, paired, trusted, connected).
+        Returns a list of dicts with plain Python types.
         """
         devices = []
         try:
@@ -417,13 +417,22 @@ class PeripheralController:
             for path, ifaces in objs.items():
                 if "org.bluez.Device1" in ifaces:
                     props = ifaces["org.bluez.Device1"]
-                    addr = props.get("Address")
-                    name = props.get("Name")
-                    paired = props.get("Paired")
-                    trusted = props.get("Trusted")
-                    connected = props.get("Connected")
-                    devices.append((path, addr, name, paired, trusted, connected))
+                    # Cast dbus types to native Python
+                    addr = str(props.get("Address"))
+                    name = str(props.get("Name")) if "Name" in props else None
+                    paired = bool(props.get("Paired"))
+                    trusted = bool(props.get("Trusted"))
+                    connected = bool(props.get("Connected"))
+                    devices.append({
+                        "path": str(path),
+                        "address": addr,
+                        "name": name,
+                        "paired": paired,
+                        "trusted": trusted,
+                        "connected": connected
+                    })
             return devices
         except Exception as e:
             self.logger.error(f"❌ Failed to list cached devices: {e}")
             return []
+
