@@ -197,13 +197,34 @@ class PeripheralController:
         mngr.connect_to_signal("InterfacesAdded", self._on_interface_added)
         mngr.connect_to_signal("InterfacesRemoved", self._on_interface_removed)
 
+        # Watch for Adapter property changes (power, discoverable, pairable)
         self.bus.add_signal_receiver(
-            self._on_properties_changed,
+            self._on_adapter_properties_changed,
+            bus_name="org.bluez",
+            signal_name="PropertiesChanged",
+            dbus_interface="org.freedesktop.DBus.Properties",
+            path=self.adapter_path
+        )
+
+        # Watch for Device property changes (RSSI, ServicesResolved, Paired, Trusted, etc.)
+        self.bus.add_signal_receiver(
+            self._on_device_properties_changed,
             bus_name="org.bluez",
             signal_name="PropertiesChanged",
             dbus_interface="org.freedesktop.DBus.Properties",
             path_keyword="path"
         )
+
+        # Watch for BlueZ daemon errors (optional)
+        self.bus.add_signal_receiver(
+            self._on_disconnect_reason,
+            bus_name="org.bluez",
+            signal_name="DisconnectReason",
+            dbus_interface="org.bluez.Device1",
+            path_keyword="path"
+        )
+
+
 
     # ------------------------------------------------------------------
     # Signal handlers
@@ -232,6 +253,24 @@ class PeripheralController:
             else:
                 self.logger.info(f"❌ Device disconnected: {addr} ({path})")
                 self.connected_devices.pop(addr, None)
+
+    def _on_adapter_properties_changed(self, interface, changed, invalidated):
+        if interface != "org.bluez.Adapter1":
+            return
+        for key, val in changed.items():
+            self.logger.info(f"⚙️ Adapter property changed: {key}={val}")
+
+    def _on_device_properties_changed(self, interface, changed, invalidated, path):
+        if interface != "org.bluez.Device1":
+            return
+        addr = path.split("dev_")[-1].replace("_", ":")
+        for key, val in changed.items():
+            if key in ("Paired", "Trusted", "ServicesResolved", "RSSI"):
+                self.logger.info(f"📡 Device {addr} property {key}={val}")
+
+    def _on_disconnect_reason(self, reason, path=None):
+        addr = path.split("dev_")[-1].replace("_", ":") if path else "unknown"
+        self.logger.warning(f"❌ Device {addr} disconnected, reason={reason}")
 
 
     # ----------------------------------------------------------------------
