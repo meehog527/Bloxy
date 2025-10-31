@@ -192,8 +192,6 @@ peripheral:
             - 02   # Usage (Mouse)
             - A1 
             - 01   # Collection (Application)
-            - 85 
-            - 02   # Report ID (2)
             - A1 
             - 00   # Collection (Physical)
             - 05 
@@ -238,10 +236,10 @@ peripheral:
             - C0        # End Collection
             # Battery Strength (Report ID 3)
             - 06 
-            - 00 
-            - FF   # Vendor-defined page (safe placeholder)
+            - 84 
+            - 00   # Vendor-defined page (safe placeholder)
             - 09 
-            - 01        # Usage (Battery Strength)
+            - 66        # Usage (Battery Strength)
             - A1 
             - 01        # Collection (Application)
             - 85 
