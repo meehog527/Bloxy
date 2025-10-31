@@ -179,6 +179,8 @@ class PeripheralController:
         self.config = config
         self.advertisement = Advertisement(bus, 0, config)
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.connected_devices = {}
+
 
         # New flags
         self._ready_cb = None
