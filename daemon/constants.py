@@ -5,7 +5,7 @@ import colorlog
 # Logging
 # ================================
 LOG_LEVEL = logging.DEBUG
-LOG_FORMAT = "%(log_color)s%(asctime)s [%(levelname)s] %(name)s(%(funcName)s): %(message)s"
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s(%(funcName)s): %(message)s"
 
 # ================================
 # BlueZ Core Constants
