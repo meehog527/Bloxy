@@ -365,38 +365,63 @@ class PeripheralController:
 
     def register_gatt_application_and_advertisement(self):
         self.logger.debug("=== Register GATT Application ===")
-        self.logger.debug("Adapter path: %s", self.adapter_path)
-        self.logger.debug("App path: %s", self.app_path)
-        self.logger.debug("Bus name owner: %s", self.bus.get_unique_name())
+        manager = dbus.Interface(
+            self.bus.get_object("org.bluez", self.adapter_path),
+            "org.bluez.GattManager1"
+        )
 
-        try:
-            adapter_obj = self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path)
-            gatt_manager = dbus.Interface(adapter_obj, GATT_MANAGER_IFACE)
-            self.logger.debug("GattManager1 interface found on adapter.")
-        except dbus.DBusException as e:
-            self.logger.error("Could not get GattManager1 on adapter: %s", e)
-            return False
+        manager.RegisterApplication(
+            self.app_path,
+            {},
+            reply_handler=self._on_app_registered,
+            error_handler=self._on_app_error
+        )
+        self.logger.debug("RegisterApplication call sent, waiting for reply...")
 
-        try:
-            gatt_manager.RegisterApplication(
-                self.app_path,
-                {},
-                reply_handler=self._on_app_registered(),
-                error_handler=lambda e: self._on_app_error(e)
-            )
-            self.logger.debug("RegisterApplication call sent, waiting for reply...")
-            return True
-        except dbus.DBusException as e:
-            self.logger.error("Error calling RegisterApplication: %s", e)
-            return False
-        
-    def _on_app_registered(self):
+    # ----------------------------------------------------------------------
+
+    def _on_app_registered(self, *args):
         self.logger.info("✅ Application registered, now registering advertisement...")
-        self.register_advertisement()
+
+        adv_manager = dbus.Interface(
+            self.bus.get_object(BLUEZ_SERVICE_NAME, self.adapter_path), LE_ADVERTISING_MANAGER_IFACE)
+
+        adv_manager.RegisterAdvertisement(
+            self.advertisement.get_path(),
+            {},
+            reply_handler=self._on_adv_registered,
+            error_handler=self._on_adv_error
+        )
 
     def _on_app_error(self, error):
-        self.logger.error("❌ RegisterApplication failed: %s (%s)", error, type(error).__name__)
+        self.logger.error(f"❌ Application registration failed: {error}")
 
+    # ----------------------------------------------------------------------
+
+    def _on_adv_registered(self, *args):
+        self.logger.info("✅ Advertisement registered successfully.")
+
+    def _on_adv_error(self, error):
+        if "NoReply" in str(error):
+            self.logger.warning("⚠️ Advertisement registration timed out, retrying in 2s...")
+            GLib.timeout_add_seconds(2, lambda: self._retry_advertisement() or False)
+        elif "AlreadyExists" in str(error):
+            self.logger.warning("⚠️ Advertisement already exists, continuing...")
+        else:
+            self.logger.error(f"❌ Advertisement registration failed: {error}")
+
+    def _retry_advertisement(self):
+        adv_manager = dbus.Interface(
+            self.bus.get_object("org.bluez", self.adapter_path),
+            "org.bluez.LEAdvertisingManager1"
+        )
+        adv_manager.RegisterAdvertisement(
+            self.advertisement.get_path(),
+            {},
+            reply_handler=self._on_adv_registered,
+            error_handler=self._on_adv_error
+        )
+        return False  # stop GLib timeout
 
     # ----------------------------------------------------------------------
     # Advertising
