@@ -179,9 +179,11 @@ class PeripheralController:
         self.is_on = False
         self.config = config
         self.event_log = []
-        self.advertisement = None
+        self.advertisement = Advertisement(bus, 0, config)
 
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+
+        
 
         # Subscribe to Device1 property changes
         self.bus.add_signal_receiver(
