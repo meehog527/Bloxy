@@ -9,6 +9,7 @@ import dbus.service
 import signal
 import sys
 from gi.repository import GLib
+import threading
 
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
@@ -351,12 +352,47 @@ def main():
 
     GLib.idle_add(start_once)
 
+    # Start REPL in background thread
+    threading.Thread(target=repl_loop, args=(daemon,), daemon=True).start()
 
     try:
         loop.run()
     except KeyboardInterrupt:
         shutdown()
 
+
+# ----------------------------------------------------------------------
+# Interactive REPL for text commands
+# ----------------------------------------------------------------------
+
+def repl_loop(daemon):
+    """
+    Simple REPL loop running in a background thread.
+    Type commands into stdin while the daemon is running.
+    """
+    print("Type 'help' for commands. Ctrl+D or 'quit' to exit REPL (daemon keeps running).")
+    for line in sys.stdin:
+        cmd = line.strip().lower()
+        if not cmd:
+            continue
+        if cmd in ("quit", "exit"):
+            print("Exiting REPL (daemon continues).")
+            break
+        elif cmd == "help":
+            print("Commands: status, check-adapter, check-services, check-devices, trust <MAC>")
+        elif cmd == "status":
+            print(daemon.daemon_service.GetStatus() if daemon.daemon_service else "No service yet")
+        elif cmd == "check-adapter":
+            print(daemon.controller._check_adapter())
+        elif cmd == "check-services":
+            print(f"Services: {[svc.uuid for svc in daemon.services]}")
+        elif cmd == "check-devices":
+            print(daemon.controller._check_devices())
+        elif cmd.startswith("trust "):
+            mac = cmd.split(" ", 1)[1]
+            print("Trust result:", daemon.controller.trust_device(mac))
+        else:
+            print(f"Unknown command: {cmd}")
 
 
 if __name__ == '__main__':
