@@ -207,7 +207,7 @@ class HIDDaemon:
         for svc in self.services:
             for ch in svc.characteristics:
                 name = (ch.name or '').lower()
-                if 'HID Report - Input (Keyboard)':
+                if 'HID Report - Input (Keyboard)' in name:
                     self.keyboard_char = ch
                 elif 'mouse' in name and 'report' in name:
                     self.mouse_svc = HIDMouseService(
