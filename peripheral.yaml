@@ -191,22 +191,22 @@ peripheral:
               value: [0x01, 0x02]
               flags: [read]
 
-        - name: Boot Keyboard Input Report
+#        - name: Boot Keyboard Input Report
           uuid: 00002a22-0000-1000-8000-00805f9b34fb
           description: Boot Keyboard Input Report
           value: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
           notifying: true
           flags: [read, notify]
           descriptors: []
-
-        - name: Boot Keyboard Output Report
+#
+#        - name: Boot Keyboard Output Report
           uuid: 00002a32-0000-1000-8000-00805f9b34fb
           description: Boot Keyboard Output Report
           value: [0x00]
           notifying: false
           flags: [read, write, write-without-response]
           descriptors: []
-
+#
 #        - name: Boot Mouse Input Report
 #          uuid: 00002a33-0000-1000-8000-00805f9b34fb
 #          description: Boot Mouse Input Report
