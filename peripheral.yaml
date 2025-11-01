@@ -207,13 +207,13 @@ peripheral:
           flags: [read, write, write-without-response]
           descriptors: []
 
-        - name: Boot Mouse Input Report
-          uuid: 00002a33-0000-1000-8000-00805f9b34fb
-          description: Boot Mouse Input Report
-          value: [0x00, 0x00, 0x00]
-          notifying: true
-          flags: [read, notify]
-          descriptors: []
+#        - name: Boot Mouse Input Report
+#          uuid: 00002a33-0000-1000-8000-00805f9b34fb
+#          description: Boot Mouse Input Report
+#          value: [0x00, 0x00, 0x00]
+#          notifying: true
+#          flags: [read, notify]
+#          descriptors: []
 
         - name: HID Report - Feature (Battery Stub)
           uuid: 00002a4d-0000-1000-8000-00805f9b34fb
