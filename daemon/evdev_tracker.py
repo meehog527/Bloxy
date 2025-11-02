@@ -38,13 +38,14 @@ class EvdevTracker:
                     if event.type == ecodes.EV_KEY:
                         key_event = categorize(event)
                         keycode = key_event.keycode
-                        print(f"event: {key_event}, code: {keycode}" )
+                        #print(f"event: {key_event}, code: {keycode}" )
                         if isinstance(keycode, list):
                             keycode = keycode[0]
                         if key_event.keystate == key_event.key_down:
-                            print(f"key down: {key_event}, code: {keycode}" )
+                            #print(f"key down: {key_event}, code: {keycode}" )
                             if str(keycode).startswith('BTN_'):
                                 self.buttons.add(keycode)
+                                print(f"key down: {key_event}, code: {keycode}" )
                             else:
                                 self.pressed_keys.add(keycode)
                         elif key_event.keystate == key_event.key_up:
