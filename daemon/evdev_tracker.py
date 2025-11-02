@@ -322,6 +322,7 @@ class KeyboardDevice:
         - Otherwise (no change): (False, None)
         """
         if not self.tracker or not self.tracker.is_connected:
+            print(f"{self.tracker} - {self.tracker.is_connected}")
             return False, None
 
         changed = self.tracker.poll()
