@@ -13,7 +13,7 @@ import os
 import struct
 import select
 import logging
-from constants.py import LOG_LEVEL, LOG_FORMAT
+from constants import LOG_LEVEL, LOG_FORMAT
 
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
