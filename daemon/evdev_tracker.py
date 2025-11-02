@@ -183,7 +183,7 @@ class EvdevTracker:
         changed = False
         events_seen = False
 
-        self.logger.debug("poll: enter connected=%s fd=%s path=%s", self._connected, self.fileno(), self.device_path)
+        #self.logger.debug("poll: enter connected=%s fd=%s path=%s", self._connected, self.fileno(), self.device_path)
 
         # Ensure open if possible
         if not self._connected:
@@ -203,12 +203,12 @@ class EvdevTracker:
 
         try:
             r, _, _ = select.select([fdnum], [], [], 0)
-            self.logger.debug("poll: select returned r=%s", r)
+#            self.logger.debug("poll: select returned r=%s", r)
         except Exception as e:
             self.logger.exception("poll: select.select raised exception: %s", e)
             r = []
         if not r:
-            self.logger.debug("poll: no data ready on fd, returning False")
+#            self.logger.debug("poll: no data ready on fd, returning False")
             return False
 
         for ev in self._read_events() or []:
