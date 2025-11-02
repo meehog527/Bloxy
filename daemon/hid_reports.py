@@ -51,19 +51,28 @@ class HIDReportBuilder:
         """
         buttons: set of pressed button names {'BTN_LEFT', 'BTN_RIGHT', ...}
         rel_x, rel_y: integer deltas (relative movement)
-        Returns: 4-byte mouse report [buttons, x, y, wheel(0)]
+        Returns: 4-byte mouse report [buttons, x, y, wheel]
         """
         mouse_maps = self.maps.get('mouse', {})
-        
         report = [0x00, 0x00, 0x00, 0x00]
-        if 'BTN_LEFT' in buttons:
-            report[0] |= mouse_maps.get('BTN_LEFT')
-        if 'BTN_RIGHT' in buttons:
-            report[0] |= mouse_maps.get('BTN_RIGHT')
-        if 'BTN_MIDDLE' in buttons:
-            report[0] |= mouse_maps.get('BTN_MIDDLE')
 
-        report[1] = (int(rel_x) + 127) % 256
-        report[2] = (int(rel_y) + 127) % 256
+        # safe button lookup with default 0
+        if 'BTN_LEFT' in buttons:
+            report[0] |= mouse_maps.get('BTN_LEFT', 0)
+        if 'BTN_RIGHT' in buttons:
+            report[0] |= mouse_maps.get('BTN_RIGHT', 0)
+        if 'BTN_MIDDLE' in buttons:
+            report[0] |= mouse_maps.get('BTN_MIDDLE', 0)
+
+        # clamp to signed 8-bit range and convert to two's complement byte
+        def to_signed_byte(val):
+            if val > 127:
+                val = 127
+            elif val < -127:
+                val = -127
+            return val & 0xFF
+
+        report[1] = to_signed_byte(int(rel_x))
+        report[2] = to_signed_byte(int(rel_y))
         report[3] = 0x00
         return report
