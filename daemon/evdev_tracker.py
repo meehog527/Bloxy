@@ -373,20 +373,20 @@ class KeyboardDevice:
         build a report and emit if report differs from last emitted.
         """
         if not self.tracker or not self.tracker.is_connected:
-            logger.debug("KeyboardDevice.poll: tracker not connected: %r %s", self.tracker, getattr(self.tracker, 'is_connected', None))
+    #        logger.debug("KeyboardDevice.poll: tracker not connected: %r %s", self.tracker, getattr(self.tracker, 'is_connected', None))
             return False, None
 
         # Ask tracker to consume pending events; tracker.poll() now returns True when any events occurred
         changed = self.tracker.poll()
-        logger.debug("KeyboardDevice.poll: tracker.poll -> changed=%s key_state=%s", changed, list(self.tracker.key_state))
+      #  logger.debug("KeyboardDevice.poll: tracker.poll -> changed=%s key_state=%s", changed, list(self.tracker.key_state))
 
         # Build report always when tracker reported events, otherwise only when state differs
         current_keyset = frozenset(self.tracker.key_state)
         report, modifier_bits = self._build_report()
-        logger.debug(
-            "KeyboardDevice.poll: built report=%s mods=%02x last_mods=%02x last_keyset=%s",
-            report, modifier_bits, self._last_mods, list(self._last_keyset)
-        )
+ #       logger.debug(
+ #           "KeyboardDevice.poll: built report=%s mods=%02x last_mods=%02x last_keyset=%s",
+  #          report, modifier_bits, self._last_mods, list(self._last_keyset)
+ #       )
 
         # Emit if either:
         #  - tracker reported events (so we want to surface repeats/releases/presses), OR
@@ -397,7 +397,7 @@ class KeyboardDevice:
             logger.info("KeyboardDevice: emitting report mods=%02x keys=%s", modifier_bits, list(report[3:]))
             return True, report
 
-        logger.debug("KeyboardDevice.poll: no emit (no change)")
+  #      logger.debug("KeyboardDevice.poll: no emit (no change)")
         return False, None
 
 
