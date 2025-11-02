@@ -239,7 +239,7 @@ class HIDDaemon:
                 self.logger.exception("Error in update_reports: %s", e)
             return True
 
-        GLib.timeout_add(1, update_reports) #125hz
+        GLib.timeout_add(10, update_reports) #125hz
 
     # ------------------------------------------------------------------
     # Controller callbacks
