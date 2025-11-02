@@ -205,7 +205,7 @@ class HIDDaemon:
     def _create_dbus_service(self):
         """Create the HIDPeripheralService and locate HID characteristics."""
         if self._service_created:
-            self.logger.warning("⚠️ HIDPeripheralService already exists, skipping re‑creation.")
+            self.logger.warning("⚠️ HIDPeripheralService already exists, skipping re-creation.")
             return
 
         self.daemon_service = HIDPeripheralService(
@@ -237,17 +237,28 @@ class HIDDaemon:
         def update_reports():
             try:
                 # Poll keyboard adapter
+                self.logger.debug("polling keyboard: connected=%s", getattr(self._kbd_tracker, "_connected", None))
                 if self.keyboard_dev:
                     kb_updated, kb_report = self.keyboard_dev.poll()
+                    self.logger.debug("keyboard_dev.poll -> updated=%s report=%s", kb_updated, kb_report)
+                    
                     if kb_updated and kb_report and self.keyboard_char:
                         # keyboard_char expects the raw HID report bytes
                         self.keyboard_char.update_value(kb_report)
                         self.last_kb_report = kb_report
                         self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+                        
 
                 # Poll mouse adapter
+                self.logger.debug("polling mouse: connected=%s", getattr(self._mouse_tracker, "_connected", None))
                 if self.mouse_dev:
                     m_updated, m_report = self.mouse_dev.poll()
+                    self.logger.debug("mouse_dev.poll -> updated=%s report=%s rel=(%s,%s) buttons=%s",
+                      m_updated, m_report,
+                      getattr(self._mouse_tracker, "rel_x", None),
+                      getattr(self._mouse_tracker, "rel_y", None),
+                      getattr(self._mouse_tracker, "buttons", None))
+
                     if m_updated and m_report and self.mouse_char:
                         self.mouse_char.update_value(m_report)
                         self.last_mouse_report = m_report
