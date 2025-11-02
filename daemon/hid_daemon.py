@@ -178,6 +178,7 @@ class HIDDaemon:
             GLib.MainLoop().quit()
             return False
 
+    
     def _setup_input_devices(self):
         """Validate and initialize input devices."""
         kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
@@ -197,10 +198,19 @@ class HIDDaemon:
         self._kbd_tracker = EvdevTracker(kdev_path)
         self._mouse_tracker = EvdevTracker(mdev_path)
 
+        # Attempt an immediate open so problems surface early and logs show the reason
+        try:
+            self._kbd_tracker.open()
+            self._mouse_tracker.open()
+        except Exception:
+            # open() logs exceptions internally, but be defensive here too
+            self.logger.exception("Exception while opening trackers immediately")
+
         # Wrap trackers with high-level adapters
         self.keyboard_dev = KeyboardDevice(self._kbd_tracker)
         self.mouse_dev = MouseDevice(self._mouse_tracker)
         return True
+
 
     def _create_dbus_service(self):
         """Create the HIDPeripheralService and locate HID characteristics."""
