@@ -233,8 +233,10 @@ class HIDDaemon:
                 name = (ch.name or '').lower()
                 # Original code looked for an explicit keyboard report name
                 if 'hid report - input (keyboard)' in (ch.name or '').lower():
+                    self.logger.info(f"Keyboard Charecteristic found:{ch.name}")
                     self.keyboard_char = ch
                 elif 'mouse' in name and 'report' in name:
+                    self.logger.info(f"Mouse Charecteristic found:{ch.name}")
                     self.mouse_char = ch
 
         if not self.keyboard_char:
