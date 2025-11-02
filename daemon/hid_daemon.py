@@ -255,6 +255,7 @@ class HIDDaemon:
                 if self.keyboard_dev:
                     kb_updated, kb_report = self.keyboard_dev.poll()
 
+                    print(f"trying update: {kb_report} = {self.keyboard_char}")
                     if kb_updated and kb_report:
                         print(f"trying update: {kb_report} = {self.keyboard_char}")
                     
