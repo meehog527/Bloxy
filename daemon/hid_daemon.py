@@ -254,6 +254,7 @@ class HIDDaemon:
                         # keyboard_char expects the raw HID report bytes
                         self.keyboard_char.update_value(kb_report)
                         self.last_kb_report = kb_report
+                        print("kb updated")
                         self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
                         
                 # Poll mouse adapter
