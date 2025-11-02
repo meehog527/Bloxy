@@ -291,7 +291,8 @@ class EvdevTracker:
             changed, events_seen, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y
         )
 
-    return changed or events_seen
+        return changed or events_seen
+    
     def _code_to_name(self, code):
         """
         Minimal numeric code -> symbolic name mapping for common keys/buttons.
