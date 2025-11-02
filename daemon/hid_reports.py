@@ -56,7 +56,7 @@ class HIDReportBuilder:
         """
         mouse_maps = self.maps.get('mouse', {})
         report = [0x00, 0x00, 0x00, 0x00]
-
+        print(buttons)
         report[0] |= mouse_maps.get('BTN_LEFT', 0) if 'BTN_LEFT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_RIGHT', 0) if 'BTN_RIGHT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if 'BTN_MIDDLE' in buttons else 0
