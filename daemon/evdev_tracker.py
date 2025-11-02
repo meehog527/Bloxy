@@ -218,7 +218,7 @@ class EvdevTracker:
                 self.logger.exception("poll: malformed event %r, skipping: %s", ev, e)
                 continue
 
-            self.logger.debug("poll: raw event ev_type=%s code=%s value=%s", ev_type, code, value)
+#            self.logger.debug("poll: raw event ev_type=%s code=%s value=%s", ev_type, code, value)
 
             if ev_type == EV_REL:
                 if code == REL_X:
@@ -272,7 +272,7 @@ class EvdevTracker:
                             self.buttons.discard(name)
                             changed = True
                             events_seen = True
-                            self.logger.debug("poll: button released=%s buttons=%s", name, list(self.buttons))
+#                            self.logger.debug("poll: button released=%s buttons=%s", name, list(self.buttons))
                         else:
                             self.logger.debug("poll: button release for absent button=%s", name)
                     else:
@@ -280,11 +280,12 @@ class EvdevTracker:
                             self.key_state.discard(name)
                             changed = True
                             events_seen = True
-                            self.logger.debug("poll: key released=%s key_state=%s", name, list(self.key_state))
+#                            self.logger.debug("poll: key released=%s key_state=%s", name, list(self.key_state))
                         else:
                             self.logger.debug("poll: key release for absent key=%s", name)
             else:
-                self.logger.debug("poll: unhandled ev_type=%s code=%s value=%s", ev_type, code, value)
+#                self.logger.debug("poll: unhandled ev_type=%s code=%s value=%s", ev_type, code, value)
+                pass
 
         self.logger.debug(
             "EvdevTracker.poll exit changed=%s events_seen=%s key_state=%s buttons=%s rel=(%s,%s)",
