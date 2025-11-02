@@ -10,7 +10,7 @@ LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s(%(funcName)s): %(message)s"
 # ================================
 # Performance Constants
 # ================================
-EVDEV_POLL_RATE = 11          #1ms=1000hz, 5=200hz, 8=125hz, 16~=62hz, 32~=31hz
+EVDEV_POLL_RATE = 8          #1ms=1000hz, 5=200hz, 8=125hz, 16~=62hz, 32~=31hz
 
 
 # ================================
