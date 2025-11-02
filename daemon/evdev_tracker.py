@@ -29,6 +29,7 @@ class EvdevTracker:
         self.rel_x = 0
         self.rel_y = 0
         self.code = -1
+        self.flush = False
         
         self.MOUSE_BTN = [
             ecodes.BTN_LEFT,
@@ -42,6 +43,7 @@ class EvdevTracker:
             r, _, _ = select.select([self.device.fd], [], [], 0)
             if self.device.fd in r:
                 for event in self.device.read():
+                    self.flush = False #wait for SYN to flush
                     if event.type == ecodes.EV_KEY:
                         key_event = categorize(event)
                         keycode = key_event.keycode
@@ -73,7 +75,8 @@ class EvdevTracker:
 
                     elif event.type == ecodes.EV_SYN:                       
                         print(f"======SYN: {event}")
-                        pass
+                        self.flush = True
+                        
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
         return updated
