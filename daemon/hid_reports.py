@@ -63,7 +63,7 @@ class HIDReportBuilder:
         if 'BTN_MIDDLE' in buttons:
             report[0] |= mouse_maps.get('BTN_MIDDLE')
 
-        report[1] = (int(rel_x) + 256) % 256
-        report[2] = (int(rel_y) + 256) % 256
+        report[1] = (int(rel_x) + 127) % 256
+        report[2] = (int(rel_y) + 127) % 256
         report[3] = 0x00
         return report
