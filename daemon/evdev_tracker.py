@@ -38,6 +38,7 @@ class EvdevTracker:
                     if event.type == ecodes.EV_KEY:
                         key_event = categorize(event)
                         keycode = key_event.keycode
+                        print(f"event: {key_event}, code: {keycode}" )
                         if isinstance(keycode, list):
                             keycode = keycode[0]
                         if key_event.keystate == key_event.key_down:
