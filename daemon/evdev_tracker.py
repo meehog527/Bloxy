@@ -174,39 +174,124 @@ class EvdevTracker:
 
     def poll(self):
         """
-        Poll underlying tracker and return (updated, report_bytes).
+        Poll for pending events, attempting to open the device if it is not connected.
 
-        - If tracker not connected: returns (False, None)
-        - If connected and tracker.poll() returned events or state differs from last emitted,
-        build a report and emit if report differs from last emitted.
+        Returns:
+        - True if relevant internal state changed (buttons, keys, rel_x/rel_y)
+        - False otherwise
         """
-        if not self.tracker or not self.tracker.is_connected:
-            logger.debug("KeyboardDevice.poll: tracker not connected: %r %s", self.tracker, getattr(self.tracker, 'is_connected', None))
-            return False, None
+        changed = False
+        events_seen = False
 
-        # Ask tracker to consume pending events; tracker.poll() now returns True when any events occurred
-        changed = self.tracker.poll()
-        logger.debug("KeyboardDevice.poll: tracker.poll -> changed=%s key_state=%s", changed, list(self.tracker.key_state))
+        self.logger.debug("poll: enter connected=%s fd=%s path=%s", self._connected, self.fileno(), self.device_path)
 
-        # Build report always when tracker reported events, otherwise only when state differs
-        current_keyset = frozenset(self.tracker.key_state)
-        report, modifier_bits = self._build_report()
-        logger.debug(
-            "KeyboardDevice.poll: built report=%s mods=%02x last_mods=%02x last_keyset=%s",
-            report, modifier_bits, self._last_mods, list(self._last_keyset)
+        # Ensure open if possible
+        if not self._connected:
+            self.logger.debug("poll: not connected, attempting open()")
+            self.open()
+            self.logger.debug("poll: after open connected=%s fd=%s", self._connected, self.fileno())
+            # If we just opened, no prior data to consume — return False to indicate no change
+            if not self._connected:
+                self.logger.debug("poll: still not connected after open(), returning False")
+                return False
+
+        # Use select to avoid blocking read
+        fdnum = self.fileno()
+        if fdnum < 0:
+            self.logger.debug("poll: fileno invalid (%s), returning False", fdnum)
+            return False
+
+        try:
+            r, _, _ = select.select([fdnum], [], [], 0)
+            self.logger.debug("poll: select returned r=%s", r)
+        except Exception as e:
+            self.logger.exception("poll: select.select raised exception: %s", e)
+            r = []
+        if not r:
+            self.logger.debug("poll: no data ready on fd, returning False")
+            return False
+
+        for ev in self._read_events() or []:
+            try:
+                ev_type, code, value = ev
+            except Exception as e:
+                self.logger.exception("poll: malformed event %r, skipping: %s", ev, e)
+                continue
+
+            self.logger.debug("poll: raw event ev_type=%s code=%s value=%s", ev_type, code, value)
+
+            if ev_type == EV_REL:
+                if code == REL_X:
+                    if value:
+                        old_rel = self.rel_x
+                        self.rel_x += int(value)
+                        changed = True
+                        events_seen = True
+                        self.logger.debug("poll: REL_X value=%s rel_x %s->%s", value, old_rel, self.rel_x)
+                elif code == REL_Y:
+                    if value:
+                        old_rel = self.rel_y
+                        self.rel_y += int(value)
+                        changed = True
+                        events_seen = True
+                        self.logger.debug("poll: REL_Y value=%s rel_y %s->%s", value, old_rel, self.rel_y)
+                else:
+                    self.logger.debug("poll: EV_REL unknown code=%s value=%s", code, value)
+
+            elif ev_type == EV_KEY:
+                name = self._code_to_name(code)
+                self.logger.debug("poll: EV_KEY code=%s -> name=%s value=%s", code, name, value)
+                if not name:
+                    self.logger.debug("poll: unknown key code %s, skipping", code)
+                    continue
+
+                # Non-zero value indicates press or autorepeat (value==1 initial, 2 repeat on many systems)
+                if value:
+                    events_seen = True
+                    if name.startswith('BTN_'):
+                        if name not in self.buttons:
+                            self.buttons.add(name)
+                            changed = True
+                            self.logger.debug("poll: button pressed new=%s buttons=%s", name, list(self.buttons))
+                        else:
+                            # Log repeated button press
+                            self.logger.debug("poll: button press repeat=%s (already in set)", name)
+                            # consider repeat as event but not necessarily a state-change
+                    else:
+                        if name not in self.key_state:
+                            self.key_state.add(name)
+                            changed = True
+                            self.logger.debug("poll: key pressed new=%s key_state=%s", name, list(self.key_state))
+                        else:
+                            # Autorepeat / repeated keydown — log and treat as an event
+                            self.logger.debug("poll: key press repeat=%s (already in key_state)", name)
+                else:
+                    # value == 0 indicates release
+                    if name.startswith('BTN_'):
+                        if name in self.buttons:
+                            self.buttons.discard(name)
+                            changed = True
+                            events_seen = True
+                            self.logger.debug("poll: button released=%s buttons=%s", name, list(self.buttons))
+                        else:
+                            self.logger.debug("poll: button release for absent button=%s", name)
+                    else:
+                        if name in self.key_state:
+                            self.key_state.discard(name)
+                            changed = True
+                            events_seen = True
+                            self.logger.debug("poll: key released=%s key_state=%s", name, list(self.key_state))
+                        else:
+                            self.logger.debug("poll: key release for absent key=%s", name)
+            else:
+                self.logger.debug("poll: unhandled ev_type=%s code=%s value=%s", ev_type, code, value)
+
+        self.logger.debug(
+            "EvdevTracker.poll exit changed=%s events_seen=%s key_state=%s buttons=%s rel=(%s,%s)",
+            changed, events_seen, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y
         )
 
-        # Emit if either:
-        #  - tracker reported events (so we want to surface repeats/releases/presses), OR
-        #  - the keyset or modifier bits differ from last emitted
-        if changed or current_keyset != self._last_keyset or modifier_bits != self._last_mods:
-            self._last_keyset = current_keyset
-            self._last_mods = modifier_bits
-            logger.info("KeyboardDevice: emitting report mods=%02x keys=%s", modifier_bits, list(report[3:]))
-            return True, report
-
-        logger.debug("KeyboardDevice.poll: no emit (no change)")
-        return False, None
+        return changed or events_seen
     
     def _code_to_name(self, code):
         """
@@ -284,28 +369,35 @@ class KeyboardDevice:
         Poll underlying tracker and return (updated, report_bytes).
 
         - If tracker not connected: returns (False, None)
-        - If connected and state changed compared to last emitted: returns (True, bytes)
-        - Otherwise (no change): (False, None)
+        - If connected and tracker.poll() returned events or state differs from last emitted,
+        build a report and emit if report differs from last emitted.
         """
-
-        if not self.tracker or not self.tracker.is_connected:       
+        if not self.tracker or not self.tracker.is_connected:
+            logger.debug("KeyboardDevice.poll: tracker not connected: %r %s", self.tracker, getattr(self.tracker, 'is_connected', None))
             return False, None
 
+        # Ask tracker to consume pending events; tracker.poll() now returns True when any events occurred
         changed = self.tracker.poll()
-        print(changed)
-        if not changed:
-            # No new events; still check if keyset differs (edge case)
-            current_keyset = frozenset(self.tracker.key_state)
-            if current_keyset == self._last_keyset:
-                return False, None
+        logger.debug("KeyboardDevice.poll: tracker.poll -> changed=%s key_state=%s", changed, list(self.tracker.key_state))
 
+        # Build report always when tracker reported events, otherwise only when state differs
+        current_keyset = frozenset(self.tracker.key_state)
         report, modifier_bits = self._build_report()
-        keyset = frozenset(self.tracker.key_state)
-        if keyset != self._last_keyset or modifier_bits != self._last_mods:
-            self._last_keyset = keyset
+        logger.debug(
+            "KeyboardDevice.poll: built report=%s mods=%02x last_mods=%02x last_keyset=%s",
+            report, modifier_bits, self._last_mods, list(self._last_keyset)
+        )
+
+        # Emit if either:
+        #  - tracker reported events (so we want to surface repeats/releases/presses), OR
+        #  - the keyset or modifier bits differ from last emitted
+        if changed or current_keyset != self._last_keyset or modifier_bits != self._last_mods:
+            self._last_keyset = current_keyset
             self._last_mods = modifier_bits
-            self.logger.debug("KeyboardDevice: emitting report mods=%02x keys=%s", modifier_bits, list(report[3:]))
+            logger.info("KeyboardDevice: emitting report mods=%02x keys=%s", modifier_bits, list(report[3:]))
             return True, report
+
+        logger.debug("KeyboardDevice.poll: no emit (no change)")
         return False, None
 
 
