@@ -13,7 +13,7 @@ import threading
 
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
-from evdev_tracker import EvdevTracker, KeyboardDevice, MouseDevice
+from evdev_tracker import EvdevTracker, HIDMouseService
 from dbus_utils import PeripheralController
 
 from constants import (
@@ -131,20 +131,12 @@ class HIDDaemon:
         self.controller = controller
         self.report_builder = report_builder
 
-        # low-level trackers
-        self._kbd_tracker = None
-        self._mouse_tracker = None
-
-        # high-level adapters
-        self.keyboard_dev = None   # KeyboardDevice
-        self.mouse_dev = None      # MouseDevice
-
+        self.keyboard_dev = None
+        self.mouse_dev = None
         self.keyboard_char = None
-        self.mouse_char = None
-
+        self.mouse_svc = None
         self.daemon_service = None
         self.last_kb_report = None
-        self.last_mouse_report = None
 
         # New flags to prevent duplicates
         self._service_created = False
@@ -178,11 +170,10 @@ class HIDDaemon:
             GLib.MainLoop().quit()
             return False
 
-    
     def _setup_input_devices(self):
         """Validate and initialize input devices."""
-        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event1')
-        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event0')
+        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
+        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
 
         if not validate_input_device(kdev_path, "keyboard"):
             self.logger.error("Keyboard device not valid, exiting.")
@@ -194,80 +185,50 @@ class HIDDaemon:
             GLib.MainLoop().quit()
             return False
 
-        # Create low-level trackers (hot-plug tolerant)
-        self._kbd_tracker = EvdevTracker(kdev_path)
-        self._mouse_tracker = EvdevTracker(mdev_path)
-
-        # Attempt an immediate open so problems surface early and logs show the reason
-        try:
-            self._kbd_tracker.open()
-            self._mouse_tracker.open()
-            
-            self.logger.info("Keyboard tracker connected=%s fd=%s", self._kbd_tracker.is_connected, self._kbd_tracker.fileno())
-            self.logger.info("Mouse tracker connected=%s fd=%s", self._mouse_tracker.is_connected, self._mouse_tracker.fileno())
-        except Exception:
-            # open() logs exceptions internally, but be defensive here too
-            self.logger.exception("Exception while opening trackers immediately")
-
-        # Wrap trackers with high-level adapters
-        self.keyboard_dev = KeyboardDevice(self._kbd_tracker)
-        self.mouse_dev = MouseDevice(self._mouse_tracker)
+        self.keyboard_dev = EvdevTracker(kdev_path)
+        self.mouse_dev = EvdevTracker(mdev_path)
         return True
-
 
     def _create_dbus_service(self):
         """Create the HIDPeripheralService and locate HID characteristics."""
         if self._service_created:
-            self.logger.warning("⚠️ HIDPeripheralService already exists, skipping re-creation.")
+            self.logger.warning("⚠️ HIDPeripheralService already exists, skipping re‑creation.")
             return
 
         self.daemon_service = HIDPeripheralService(
             bus=self.bus,
             services=self.services,
             controller=self.controller,
-            trackers={'keyboard': self._kbd_tracker, 'mouse': self._mouse_tracker},
+            trackers={'keyboard': self.keyboard_dev, 'mouse': self.mouse_dev},
             report_builder=self.report_builder
         )
         self._service_created = True
 
-        # Locate characteristics for keyboard and mouse so we can update them
         for svc in self.services:
             for ch in svc.characteristics:
                 name = (ch.name or '').lower()
-                # Original code looked for an explicit keyboard report name
-                if 'hid report - input (keyboard)' in (ch.name or '').lower():
-                    self.logger.info(f"Keyboard Charecteristic found:{ch.name}")
+                if 'HID Report - Input (Keyboard)' in ch.name:
                     self.keyboard_char = ch
                 elif 'mouse' in name and 'report' in name:
-                    self.logger.info(f"Mouse Charecteristic found:{ch.name}")
-                    self.mouse_char = ch
-
-        if not self.keyboard_char:
-            self.logger.warning("Keyboard characteristic not found during service creation.")
-        if not self.mouse_char:
-            self.logger.warning("Mouse characteristic not found during service creation.")
+                    self.mouse_svc = HIDMouseService(
+                        os.environ.get('MOUSE_DEV', '/dev/input/event1'), ch
+                    )
 
     def _schedule_report_updates(self):
         """Schedule periodic polling of input devices and report updates."""
         def update_reports():
             try:
-                # Poll keyboard adapter
-                if self.keyboard_dev:
-                    kb_updated, kb_report = self.keyboard_dev.poll()                    
-                    if kb_updated and kb_report and self.keyboard_char:
-                        # keyboard_char expects the raw HID report bytes
+                self.keyboard_dev.poll()
+                if self.mouse_svc:
+                    self.mouse_svc.poll()
+                if self.keyboard_char:
+                    kb_report = self.report_builder.build_keyboard_report(
+                        list(self.keyboard_dev.pressed_keys)
+                    )
+                    if kb_report != self.last_kb_report:
                         self.keyboard_char.update_value(kb_report)
                         self.last_kb_report = kb_report
                         self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
-                        
-                # Poll mouse adapter
-                if self.mouse_dev:
-                    m_updated, m_report = self.mouse_dev.poll()
-                    if m_updated and m_report and self.mouse_char:
-                        self.mouse_char.update_value(m_report)
-                        self.last_mouse_report = m_report
-                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
-
             except Exception as e:
                 self.logger.exception("Error in update_reports: %s", e)
             return True
