@@ -327,7 +327,7 @@ class HIDCharacteristic(GattObject):
         """
         new_value = [dbus.Byte(int(v) & 0xFF) for v in new_value_bytes]
 #        if new_value == self.value:
- #           return  # No change
+#findme     return  # No change
         self.value = new_value
         self.update_property('Value', dbus.Array(self.value, signature='y'))
         self.logger.debug(f"{self.name}: Value updated to {self.value}")

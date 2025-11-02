@@ -66,15 +66,13 @@ class EvdevTracker:
                         updated = True
 
                     elif event.type == ecodes.EV_REL:
-                        print(f"======REL: {event}")
-                        if event.code == ecodes.REL_X:
-                            self.rel_x += event.value
-                        elif event.code == ecodes.REL_Y:
-                            self.rel_y += event.value
-                        updated = True
-
+                        if event.value != 0: #dont blast 0 reports
+                            if event.code == ecodes.REL_X:
+                                self.rel_x += event.value
+                            elif event.code == ecodes.REL_Y:
+                                self.rel_y += event.value
+                            updated = True
                     elif event.type == ecodes.EV_SYN:                       
-                        print(f"======SYN: {event}")
                         self.flush = True
                         
         except Exception as e:
