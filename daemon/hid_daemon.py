@@ -202,6 +202,9 @@ class HIDDaemon:
         try:
             self._kbd_tracker.open()
             self._mouse_tracker.open()
+            
+            self.logger.info("Keyboard tracker connected=%s fd=%s", self._kbd_tracker.is_connected, self._kbd_tracker.fileno())
+            self.logger.info("Mouse tracker connected=%s fd=%s", self._mouse_tracker.is_connected, self._mouse_tracker.fileno())
         except Exception:
             # open() logs exceptions internally, but be defensive here too
             self.logger.exception("Exception while opening trackers immediately")
