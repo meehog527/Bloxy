@@ -183,8 +183,6 @@ class EvdevTracker:
           (no state changes yet).
         - If connected and an I/O error occurs (device removed), it will close and return False.
         """
-        logger.debug("EvdevTracker.poll(%s) connected=%s", self.device_path, self._connected)
-
         changed = False
 
         # Ensure open if possible
