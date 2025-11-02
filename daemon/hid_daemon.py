@@ -13,7 +13,7 @@ import threading
 
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
-from evdev_tracker import EvdevTracker, HIDMouseService
+from evdev_tracker import EvdevTracker
 from dbus_utils import PeripheralController
 
 from constants import (
