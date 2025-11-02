@@ -86,6 +86,8 @@ class EvdevTracker:
         self.rel_x = 0
         self.rel_y = 0
         self._connected = False
+        
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     @property
     def is_connected(self):
@@ -99,24 +101,24 @@ class EvdevTracker:
         try:
             # Ensure the path exists first to avoid noisy errors
             if not os.path.exists(self.device_path):
-                logger.debug("EvdevTracker.open: path not present %s", self.device_path)
+                self.logger.debug("EvdevTracker.open: path not present %s", self.device_path)
                 self._connected = False
                 return
             self.fd = os.open(self.device_path, os.O_RDONLY | os.O_NONBLOCK)
             self._connected = True
-            logger.info("EvdevTracker opened %s (fd=%d)", self.device_path, self.fd)
+            self.logger.info("EvdevTracker opened %s (fd=%d)", self.device_path, self.fd)
         except FileNotFoundError:
             self.fd = None
             self._connected = False
-            logger.debug("EvdevTracker.open: FileNotFound %s", self.device_path)
+            self.logger.debug("EvdevTracker.open: FileNotFound %s", self.device_path)
         except PermissionError:
             self.fd = None
             self._connected = False
-            logger.exception("EvdevTracker.open: Permission denied for %s", self.device_path)
+            self.logger.exception("EvdevTracker.open: Permission denied for %s", self.device_path)
         except Exception:
             self.fd = None
             self._connected = False
-            logger.exception("EvdevTracker.open: error opening %s", self.device_path)
+            self.logger.exception("EvdevTracker.open: error opening %s", self.device_path)
 
     def close(self):
         """Close the device if open; mark as disconnected."""
@@ -124,10 +126,10 @@ class EvdevTracker:
             try:
                 os.close(self.fd)
             except Exception:
-                logger.exception("EvdevTracker.close: error closing fd for %s", self.device_path)
+                self.logger.exception("EvdevTracker.close: error closing fd for %s", self.device_path)
         self.fd = None
         self._connected = False
-        logger.info("EvdevTracker closed %s", self.device_path)
+        self.logger.info("EvdevTracker closed %s", self.device_path)
 
     def fileno(self):
         """Return file descriptor or -1 if not open."""
@@ -148,17 +150,17 @@ class EvdevTracker:
             return
         except OSError as e:
             # Device probably removed or other IO error; treat as disconnected
-            logger.warning("EvdevTracker._read_events: read error on %s: %s. Closing.", self.device_path, e)
+            self.logger.warning("EvdevTracker._read_events: read error on %s: %s. Closing.", self.device_path, e)
             self.close()
             return
         except Exception:
-            logger.exception("EvdevTracker._read_events: unexpected error while reading %s", self.device_path)
+            self.logger.exception("EvdevTracker._read_events: unexpected error while reading %s", self.device_path)
             self.close()
             return
 
         if not raw:
             # 0 bytes read can indicate EOF/device gone — close and mark disconnected
-            logger.debug("EvdevTracker._read_events: zero bytes read, closing %s", self.device_path)
+            self.logger.debug("EvdevTracker._read_events: zero bytes read, closing %s", self.device_path)
             self.close()
             return
 
@@ -235,7 +237,7 @@ class EvdevTracker:
                             self.key_state.discard(name)
                             changed = True
 
-        logger.debug("EvdevTracker.poll changed=%s key_state=%s buttons=%s rel=(%s,%s)",
+        self.logger.debug("EvdevTracker.poll changed=%s key_state=%s buttons=%s rel=(%s,%s)",
              changed, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y)
 
         return changed
@@ -278,6 +280,7 @@ class KeyboardDevice:
         self.tracker = tracker
         self._last_keyset = frozenset()
         self._last_mods = 0
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def _build_report(self):
         modifier_bits = 0
@@ -333,7 +336,7 @@ class KeyboardDevice:
         if keyset != self._last_keyset or modifier_bits != self._last_mods:
             self._last_keyset = keyset
             self._last_mods = modifier_bits
-            logger.debug("KeyboardDevice: emitting report mods=%02x keys=%s", modifier_bits, list(report[3:]))
+            self.logger.debug("KeyboardDevice: emitting report mods=%02x keys=%s", modifier_bits, list(report[3:]))
             return True, report
         return False, None
 
@@ -352,6 +355,7 @@ class MouseDevice:
     def __init__(self, tracker: EvdevTracker):
         self.tracker = tracker
         self._last_mask = 0
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def _consume_motion(self):
         dx = int(self.tracker.rel_x)
@@ -411,5 +415,5 @@ class MouseDevice:
         ux = to_u8_signed(dx)
         uy = to_u8_signed(dy)
         report = bytes([self.REPORT_ID, mask & 0xFF, ux, uy])
-        logger.debug("MouseDevice: emitting report mask=%02x dx=%d dy=%d -> %s", mask, dx, dy, report)
+        self.logger.debug("MouseDevice: emitting report mask=%02x dx=%d dy=%d -> %s", mask, dx, dy, report)
         return True, report
