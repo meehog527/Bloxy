@@ -210,17 +210,22 @@ class HIDDaemon:
                 if 'HID Report - Input (Keyboard)' in ch.name:
                     self.keyboard_char = ch
                 elif 'mouse' in name and 'report' in name:
-                    self.mouse_svc = HIDMouseService(
-                        os.environ.get('MOUSE_DEV', '/dev/input/event1'), ch
-                    )
+                    self.mouse_char = ch
 
     def _schedule_report_updates(self):
         """Schedule periodic polling of input devices and report updates."""
         def update_reports():
             try:
                 self.keyboard_dev.poll()
-                if self.mouse_svc:
-                    self.mouse_svc.poll()
+                self.mouse_dev.poll()
+                
+                if self.mouse_char:
+                    mouse_report = self.report_builder.build_mouse_report(
+                        self.mouse_dev.buttons, self.mouse_dev.rel_x, self.mouse_dev.rel_y)
+                    if mouse_report != self.last_mouse_report:
+                        self.mouse_char.update_value(mouse_report)
+                        self.last_mouse_report = mouse_report
+                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
                 if self.keyboard_char:
                     kb_report = self.report_builder.build_keyboard_report(
                         list(self.keyboard_dev.pressed_keys)
