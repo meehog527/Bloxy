@@ -42,8 +42,9 @@ class EvdevTracker:
                         if isinstance(keycode, list):
                             keycode = keycode[0]
                         if key_event.keystate == key_event.key_down:
-                            print(event.code)
+                            print(f"{event.code} - {type(event.code).__name__}")
                             if 272 <= int(event.code) <= 274:
+                                print(f"{event.code} - {type(event.code).__name__}")
                                 self.buttons.add(keycode)
                             else:
                                 self.pressed_keys.add(keycode)
