@@ -137,6 +137,7 @@ class HIDDaemon:
         self.mouse_svc = None
         self.daemon_service = None
         self.last_kb_report = None
+        self.last_mouse_report = None
 
         # New flags to prevent duplicates
         self._service_created = False
