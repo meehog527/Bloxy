@@ -287,10 +287,10 @@ class EvdevTracker:
 #                self.logger.debug("poll: unhandled ev_type=%s code=%s value=%s", ev_type, code, value)
                 pass
 
-        self.logger.debug(
-            "EvdevTracker.poll exit changed=%s events_seen=%s key_state=%s buttons=%s rel=(%s,%s)",
-            changed, events_seen, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y
-        )
+#        self.logger.debug(
+#            "EvdevTracker.poll exit changed=%s events_seen=%s key_state=%s buttons=%s rel=(%s,%s)",
+#            changed, events_seen, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y
+#        )
 
         return changed or events_seen
     
