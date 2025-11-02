@@ -28,6 +28,7 @@ class EvdevTracker:
         self.buttons = set()
         self.rel_x = 0
         self.rel_y = 0
+        self.code = -1
 
     def poll(self):
         updated = False
@@ -46,12 +47,14 @@ class EvdevTracker:
                             if 272 <= int(event.code) <= 274:
                                 print(f"{event.code} - {type(event.code).__name__}")
                                 self.buttons.add(keycode)
+                                self.code = event.code
                             else:
                                 self.pressed_keys.add(keycode)
 
                         elif key_event.keystate == key_event.key_up:
                             if str(keycode).startswith('BTN_'):
                                 self.buttons.discard(keycode)
+                                self.code = -1
                             else:
                                 self.pressed_keys.discard(keycode)
                         updated = True

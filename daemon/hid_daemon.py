@@ -222,7 +222,7 @@ class HIDDaemon:
                 
                 if self.mouse_char:
                     mouse_report = self.report_builder.build_mouse_report(
-                        self.mouse_dev.buttons, self.mouse_dev.rel_x, self.mouse_dev.rel_y)
+                        self.mouse_dev.buttons, self.mouse_dev.rel_x, self.mouse_dev.rel_y, self.mouse_dev.code)
                     if mouse_report != self.last_mouse_report:
                         self.mouse_char.update_value(mouse_report)
                         self.last_mouse_report = mouse_report

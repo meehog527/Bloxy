@@ -47,7 +47,7 @@ class HIDReportBuilder:
 
         return report
 
-    def build_mouse_report(self, buttons, rel_x, rel_y):
+    def build_mouse_report(self, buttons, rel_x, rel_y, code):
         """
         rel_x, rel_y: these should be the current absolute position OR a raw incremental
         value that may be accumulated elsewhere. This function treats inputs as
@@ -60,6 +60,10 @@ class HIDReportBuilder:
         report[0] |= mouse_maps.get('BTN_LEFT', 0) if 'BTN_LEFT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_RIGHT', 0) if 'BTN_RIGHT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if 'BTN_MIDDLE' in buttons else 0
+        
+        report[0] |= mouse_maps.get('BTN_LEFT', 0) if code == 272 else 0
+        report[0] |= mouse_maps.get('BTN_RIGHT', 0) if code == 273 in buttons else 0
+        report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if code == 274 in buttons else 0
 
         # Interpret rel_x/rel_y as absolute if last_pos exists, otherwise as delta
         if hasattr(self, '_last_pos') and self._last_pos is not None:
