@@ -172,124 +172,124 @@ class EvdevTracker:
             offset += self.INPUT_EVENT_SIZE
             yield ev_type, code, value
 
-def poll(self):
-    """
-    Poll for pending events, attempting to open the device if it is not connected.
+    def poll(self):
+        """
+        Poll for pending events, attempting to open the device if it is not connected.
 
-    Returns:
-    - True if relevant internal state changed (buttons, keys, rel_x/rel_y)
-    - False otherwise
-    """
-    changed = False
-    events_seen = False
+        Returns:
+        - True if relevant internal state changed (buttons, keys, rel_x/rel_y)
+        - False otherwise
+        """
+        changed = False
+        events_seen = False
 
-    self.logger.debug("poll: enter connected=%s fd=%s path=%s", self._connected, self.fileno(), self.device_path)
+        self.logger.debug("poll: enter connected=%s fd=%s path=%s", self._connected, self.fileno(), self.device_path)
 
-    # Ensure open if possible
-    if not self._connected:
-        self.logger.debug("poll: not connected, attempting open()")
-        self.open()
-        self.logger.debug("poll: after open connected=%s fd=%s", self._connected, self.fileno())
-        # If we just opened, no prior data to consume — return False to indicate no change
+        # Ensure open if possible
         if not self._connected:
-            self.logger.debug("poll: still not connected after open(), returning False")
+            self.logger.debug("poll: not connected, attempting open()")
+            self.open()
+            self.logger.debug("poll: after open connected=%s fd=%s", self._connected, self.fileno())
+            # If we just opened, no prior data to consume — return False to indicate no change
+            if not self._connected:
+                self.logger.debug("poll: still not connected after open(), returning False")
+                return False
+
+        # Use select to avoid blocking read
+        fdnum = self.fileno()
+        if fdnum < 0:
+            self.logger.debug("poll: fileno invalid (%s), returning False", fdnum)
             return False
 
-    # Use select to avoid blocking read
-    fdnum = self.fileno()
-    if fdnum < 0:
-        self.logger.debug("poll: fileno invalid (%s), returning False", fdnum)
-        return False
-
-    try:
-        r, _, _ = select.select([fdnum], [], [], 0)
-        self.logger.debug("poll: select returned r=%s", r)
-    except Exception as e:
-        self.logger.exception("poll: select.select raised exception: %s", e)
-        r = []
-    if not r:
-        self.logger.debug("poll: no data ready on fd, returning False")
-        return False
-
-    for ev in self._read_events() or []:
         try:
-            ev_type, code, value = ev
+            r, _, _ = select.select([fdnum], [], [], 0)
+            self.logger.debug("poll: select returned r=%s", r)
         except Exception as e:
-            self.logger.exception("poll: malformed event %r, skipping: %s", ev, e)
-            continue
+            self.logger.exception("poll: select.select raised exception: %s", e)
+            r = []
+        if not r:
+            self.logger.debug("poll: no data ready on fd, returning False")
+            return False
 
-        self.logger.debug("poll: raw event ev_type=%s code=%s value=%s", ev_type, code, value)
-
-        if ev_type == EV_REL:
-            if code == REL_X:
-                if value:
-                    old_rel = self.rel_x
-                    self.rel_x += int(value)
-                    changed = True
-                    events_seen = True
-                    self.logger.debug("poll: REL_X value=%s rel_x %s->%s", value, old_rel, self.rel_x)
-            elif code == REL_Y:
-                if value:
-                    old_rel = self.rel_y
-                    self.rel_y += int(value)
-                    changed = True
-                    events_seen = True
-                    self.logger.debug("poll: REL_Y value=%s rel_y %s->%s", value, old_rel, self.rel_y)
-            else:
-                self.logger.debug("poll: EV_REL unknown code=%s value=%s", code, value)
-
-        elif ev_type == EV_KEY:
-            name = self._code_to_name(code)
-            self.logger.debug("poll: EV_KEY code=%s -> name=%s value=%s", code, name, value)
-            if not name:
-                self.logger.debug("poll: unknown key code %s, skipping", code)
+        for ev in self._read_events() or []:
+            try:
+                ev_type, code, value = ev
+            except Exception as e:
+                self.logger.exception("poll: malformed event %r, skipping: %s", ev, e)
                 continue
 
-            # Non-zero value indicates press or autorepeat (value==1 initial, 2 repeat on many systems)
-            if value:
-                events_seen = True
-                if name.startswith('BTN_'):
-                    if name not in self.buttons:
-                        self.buttons.add(name)
-                        changed = True
-                        self.logger.debug("poll: button pressed new=%s buttons=%s", name, list(self.buttons))
-                    else:
-                        # Log repeated button press
-                        self.logger.debug("poll: button press repeat=%s (already in set)", name)
-                        # consider repeat as event but not necessarily a state-change
-                else:
-                    if name not in self.key_state:
-                        self.key_state.add(name)
-                        changed = True
-                        self.logger.debug("poll: key pressed new=%s key_state=%s", name, list(self.key_state))
-                    else:
-                        # Autorepeat / repeated keydown — log and treat as an event
-                        self.logger.debug("poll: key press repeat=%s (already in key_state)", name)
-            else:
-                # value == 0 indicates release
-                if name.startswith('BTN_'):
-                    if name in self.buttons:
-                        self.buttons.discard(name)
-                        changed = True
-                        events_seen = True
-                        self.logger.debug("poll: button released=%s buttons=%s", name, list(self.buttons))
-                    else:
-                        self.logger.debug("poll: button release for absent button=%s", name)
-                else:
-                    if name in self.key_state:
-                        self.key_state.discard(name)
-                        changed = True
-                        events_seen = True
-                        self.logger.debug("poll: key released=%s key_state=%s", name, list(self.key_state))
-                    else:
-                        self.logger.debug("poll: key release for absent key=%s", name)
-        else:
-            self.logger.debug("poll: unhandled ev_type=%s code=%s value=%s", ev_type, code, value)
+            self.logger.debug("poll: raw event ev_type=%s code=%s value=%s", ev_type, code, value)
 
-    self.logger.debug(
-        "EvdevTracker.poll exit changed=%s events_seen=%s key_state=%s buttons=%s rel=(%s,%s)",
-        changed, events_seen, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y
-    )
+            if ev_type == EV_REL:
+                if code == REL_X:
+                    if value:
+                        old_rel = self.rel_x
+                        self.rel_x += int(value)
+                        changed = True
+                        events_seen = True
+                        self.logger.debug("poll: REL_X value=%s rel_x %s->%s", value, old_rel, self.rel_x)
+                elif code == REL_Y:
+                    if value:
+                        old_rel = self.rel_y
+                        self.rel_y += int(value)
+                        changed = True
+                        events_seen = True
+                        self.logger.debug("poll: REL_Y value=%s rel_y %s->%s", value, old_rel, self.rel_y)
+                else:
+                    self.logger.debug("poll: EV_REL unknown code=%s value=%s", code, value)
+
+            elif ev_type == EV_KEY:
+                name = self._code_to_name(code)
+                self.logger.debug("poll: EV_KEY code=%s -> name=%s value=%s", code, name, value)
+                if not name:
+                    self.logger.debug("poll: unknown key code %s, skipping", code)
+                    continue
+
+                # Non-zero value indicates press or autorepeat (value==1 initial, 2 repeat on many systems)
+                if value:
+                    events_seen = True
+                    if name.startswith('BTN_'):
+                        if name not in self.buttons:
+                            self.buttons.add(name)
+                            changed = True
+                            self.logger.debug("poll: button pressed new=%s buttons=%s", name, list(self.buttons))
+                        else:
+                            # Log repeated button press
+                            self.logger.debug("poll: button press repeat=%s (already in set)", name)
+                            # consider repeat as event but not necessarily a state-change
+                    else:
+                        if name not in self.key_state:
+                            self.key_state.add(name)
+                            changed = True
+                            self.logger.debug("poll: key pressed new=%s key_state=%s", name, list(self.key_state))
+                        else:
+                            # Autorepeat / repeated keydown — log and treat as an event
+                            self.logger.debug("poll: key press repeat=%s (already in key_state)", name)
+                else:
+                    # value == 0 indicates release
+                    if name.startswith('BTN_'):
+                        if name in self.buttons:
+                            self.buttons.discard(name)
+                            changed = True
+                            events_seen = True
+                            self.logger.debug("poll: button released=%s buttons=%s", name, list(self.buttons))
+                        else:
+                            self.logger.debug("poll: button release for absent button=%s", name)
+                    else:
+                        if name in self.key_state:
+                            self.key_state.discard(name)
+                            changed = True
+                            events_seen = True
+                            self.logger.debug("poll: key released=%s key_state=%s", name, list(self.key_state))
+                        else:
+                            self.logger.debug("poll: key release for absent key=%s", name)
+            else:
+                self.logger.debug("poll: unhandled ev_type=%s code=%s value=%s", ev_type, code, value)
+
+        self.logger.debug(
+            "EvdevTracker.poll exit changed=%s events_seen=%s key_state=%s buttons=%s rel=(%s,%s)",
+            changed, events_seen, list(self.key_state), list(self.buttons), self.rel_x, self.rel_y
+        )
 
     return changed or events_seen
     def _code_to_name(self, code):
