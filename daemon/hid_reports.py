@@ -49,31 +49,38 @@ class HIDReportBuilder:
 
     def build_mouse_report(self, buttons, rel_x, rel_y):
         """
-        buttons: set of pressed button names {'BTN_LEFT', 'BTN_RIGHT', ...}
-        rel_x, rel_y: integer deltas (relative movement)
-        Returns: 4-byte mouse report [buttons, x, y, wheel]
+        rel_x, rel_y: these should be the current absolute position OR a raw incremental
+        value that may be accumulated elsewhere. This function treats inputs as
+        current absolute position if self._last_pos exists, otherwise as deltas.
+        Returns 4-byte mouse report [buttons, x, y, wheel]
         """
         mouse_maps = self.maps.get('mouse', {})
         report = [0x00, 0x00, 0x00, 0x00]
 
-        # safe button lookup with default 0
-        if 'BTN_LEFT' in buttons:
-            report[0] |= mouse_maps.get('BTN_LEFT', 0)
-        if 'BTN_RIGHT' in buttons:
-            report[0] |= mouse_maps.get('BTN_RIGHT', 0)
-        if 'BTN_MIDDLE' in buttons:
-            report[0] |= mouse_maps.get('BTN_MIDDLE', 0)
+        report[0] |= mouse_maps.get('BTN_LEFT', 0) if 'BTN_LEFT' in buttons else 0
+        report[0] |= mouse_maps.get('BTN_RIGHT', 0) if 'BTN_RIGHT' in buttons else 0
+        report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if 'BTN_MIDDLE' in buttons else 0
 
-        # clamp to signed 8-bit range and convert to two's complement byte
-        print(f"got x:{rel_x} y:{rel_y}")
-        def to_signed_byte(val):
-            if val > 127:
-                val = 127
-            elif val < -127:
-                val = -127
-            return val & 0xFF
+        # Interpret rel_x/rel_y as absolute if last_pos exists, otherwise as delta
+        if hasattr(self, '_last_pos') and self._last_pos is not None:
+            dx = int(rel_x) - self._last_pos[0]
+            dy = int(rel_y) - self._last_pos[1]
+        else:
+            dx = int(rel_x)
+            dy = int(rel_y)
 
-        report[1] = to_signed_byte(int(rel_x))
-        report[2] = to_signed_byte(int(rel_y))
+        # update last_pos to the current absolute values so next call computes a delta
+        self._last_pos = (int(rel_x), int(rel_y))
+
+        # clamp to signed 8-bit and convert to two's complement byte
+        def to_signed_byte(v):
+            if v > 127:
+                v = 127
+            elif v < -127:
+                v = -127
+            return v & 0xFF
+
+        report[1] = to_signed_byte(dx)
+        report[2] = to_signed_byte(dy)
         report[3] = 0x00
         return report
