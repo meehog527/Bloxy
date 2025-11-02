@@ -65,6 +65,7 @@ class HIDReportBuilder:
             report[0] |= mouse_maps.get('BTN_MIDDLE', 0)
 
         # clamp to signed 8-bit range and convert to two's complement byte
+        print(f"got x:{rel_x} y:{rel_y}")
         def to_signed_byte(val):
             if val > 127:
                 val = 127
