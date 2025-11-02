@@ -29,6 +29,12 @@ class EvdevTracker:
         self.rel_x = 0
         self.rel_y = 0
         self.code = -1
+        
+        self.MOUSE_BTN = [
+            ecodes['BTN_LEFT'],
+            ecodes['BTN_RIGHT'],
+            ecodes['BTN_MIDDLE']
+            ]
 
     def poll(self):
         updated = False
@@ -40,17 +46,15 @@ class EvdevTracker:
                         key_event = categorize(event)
                         keycode = key_event.keycode
 
-                        if isinstance(keycode, list):
-                            keycode = keycode[0]
                         if key_event.keystate == key_event.key_down:
-                            if 272 <= int(event.code) <= 274:
+                            if event.code in self.MOUSE_BTN:
                                 self.buttons.add(keycode)
                                 self.code = event.code
                             else:
                                 self.pressed_keys.add(keycode)
 
                         elif key_event.keystate == key_event.key_up:
-                            if 272 <= int(event.code) <= 274:
+                            if event.code in self.MOUSE_BTN:
                                 self.buttons.discard(keycode)
                                 self.code = -1
                             else:
@@ -64,7 +68,8 @@ class EvdevTracker:
                             self.rel_y += event.value
                         updated = True
 
-                    elif event.type == ecodes.EV_SYN:
+                    elif event.type == ecodes.EV_SYN:                       
+                        print(event)
                         pass
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)

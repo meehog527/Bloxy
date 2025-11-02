@@ -18,12 +18,13 @@ from dbus_utils import PeripheralController
 
 from constants import (
     DBUS_PROP_IFACE, GATT_SERVICE_IFACE, GATT_CHRC_IFACE, GATT_DESC_IFACE,
-    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DAEMON_IFACE, DAEMON_BUS_NAME, LOG_LEVEL, LOG_FORMAT
+    HID_APP_PATH, HID_SERVICE_BASE, DAEMON_OBJ_PATH, DAEMON_IFACE, DAEMON_BUS_NAME, 
+    LOG_LEVEL, LOG_FORMAT,
+    EVDEV_POLL_RATE
 )
 
 logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger(__name__)
-
 
 # ----------------------------------------------------------------------
 # DBus Service
@@ -239,7 +240,7 @@ class HIDDaemon:
                 self.logger.exception("Error in update_reports: %s", e)
             return True
 
-        GLib.timeout_add(10, update_reports) #125hz
+        GLib.timeout_add(EVDEV_POLL_RATE, update_reports) #125hz
 
     # ------------------------------------------------------------------
     # Controller callbacks
