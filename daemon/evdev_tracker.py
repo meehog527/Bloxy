@@ -31,9 +31,9 @@ class EvdevTracker:
         self.code = -1
         
         self.MOUSE_BTN = [
-            ecodes['BTN_LEFT'],
-            ecodes['BTN_RIGHT'],
-            ecodes['BTN_MIDDLE']
+            ecodes.BTN_LEFT,
+            ecodes.BTN_RIGHT,
+            ecodes.BTN_MIDDLE
             ]
 
     def poll(self):
