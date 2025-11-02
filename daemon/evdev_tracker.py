@@ -321,12 +321,12 @@ class KeyboardDevice:
         - If connected and state changed compared to last emitted: returns (True, bytes)
         - Otherwise (no change): (False, None)
         """
-        print(f"{self.tracker} - {self.tracker.is_connected}")
-        if not self.tracker or not self.tracker.is_connected:
-            
+
+        if not self.tracker or not self.tracker.is_connected:       
             return False, None
 
         changed = self.tracker.poll()
+        print(changed)
         if not changed:
             # No new events; still check if keyset differs (edge case)
             current_keyset = frozenset(self.tracker.key_state)
