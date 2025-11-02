@@ -65,6 +65,6 @@ report_maps:
   mouse:
     BTN_LEFT: 0x01
     BTN_RIGHT: 0x02
-    BTN_MIDDLE: 0x03
+    BTN_MIDDLE: 0x04
     REL_X: 0x30
     REL_Y: 0x31
