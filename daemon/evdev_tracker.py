@@ -48,6 +48,7 @@ class EvdevTracker:
 
                         if key_event.keystate == key_event.key_down:
                             if event.code in self.MOUSE_BTN:
+                                print(f"======KEYDOWN: {event}")
                                 self.buttons.add(keycode)
                                 self.code = event.code
                             else:
@@ -55,6 +56,7 @@ class EvdevTracker:
 
                         elif key_event.keystate == key_event.key_up:
                             if event.code in self.MOUSE_BTN:
+                                print(f"======KEYUP: {event}")
                                 self.buttons.discard(keycode)
                                 self.code = -1
                             else:
@@ -62,6 +64,7 @@ class EvdevTracker:
                         updated = True
 
                     elif event.type == ecodes.EV_REL:
+                        print(f"======REL: {event}")
                         if event.code == ecodes.REL_X:
                             self.rel_x += event.value
                         elif event.code == ecodes.REL_Y:
@@ -69,7 +72,7 @@ class EvdevTracker:
                         updated = True
 
                     elif event.type == ecodes.EV_SYN:                       
-                        print(event)
+                        print(f"======SYN: {event}")
                         pass
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
