@@ -13,7 +13,7 @@ import threading
 
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
-from evdev_tracker import EvdevTracker
+from evdev_tracker import EvdevTracker, AdapterEvdevWatcher
 from dbus_utils import PeripheralController
 
 from constants import (
@@ -189,6 +189,11 @@ class HIDDaemon:
 
         self.keyboard_dev = EvdevTracker(kdev_path)
         self.mouse_dev = EvdevTracker(mdev_path)
+        
+        # adapters (store them on self)
+        self.keyboard_watcher = AdapterEvdevWatcher(self.keyboard_dev)
+        self.mouse_watcher = AdapterEvdevWatcher(self.mouse_dev)
+
         return True
 
     def _create_dbus_service(self):
@@ -214,33 +219,62 @@ class HIDDaemon:
                 elif 'mouse' in name and 'report' in name:
                     self.mouse_char = ch
 
-    def _schedule_report_updates(self):
-        """Schedule periodic polling of input devices and report updates."""
-        def update_reports():
-            try:
-                self.keyboard_dev.poll()
-                self.mouse_dev.poll()
-                
-                if self.mouse_char:
-                    mouse_report = self.report_builder.build_mouse_report(
-                        self.mouse_dev.buttons, self.mouse_dev.rel_x, self.mouse_dev.rel_y, self.mouse_dev.code)
-                    if self.mouse_dev.flush:
-                        self.mouse_char.update_value(mouse_report)
-                        self.last_mouse_report = mouse_report
-                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
-                if self.keyboard_char:
-                    kb_report = self.report_builder.build_keyboard_report(
-                        list(self.keyboard_dev.pressed_keys)
-                    )
-                    if kb_report != self.last_kb_report:
-                        self.keyboard_char.update_value(kb_report)
-                        self.last_kb_report = kb_report
-                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
-            except Exception as e:
-                self.logger.exception("Error in update_reports: %s", e)
-            return True
 
-        GLib.timeout_add(EVDEV_POLL_RATE, update_reports) #125hz
+    def _schedule_report_updates(self):
+        """Wire AdapterEvdevWatcher change signals into HID report handlers."""
+        # Handlers
+        def on_mouse_changed(watcher, payload):
+            try:
+                # only act on flush to preserve previous semantics
+                if not payload.get('flush', False):
+                    return
+                mouse_report = self.report_builder.build_mouse_report(
+                    payload['buttons'], payload['rel_x'], payload['rel_y'], payload['last_code']
+                )
+                if mouse_report != self.last_mouse_report:
+                    if self.mouse_char:
+                        self.mouse_char.update_value(mouse_report)
+                    self.last_mouse_report = mouse_report
+                    if self.daemon_service:
+                        try:
+                            self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+                        except Exception:
+                            self.logger.exception("Error notifying daemon_service StatusUpdated")
+            except Exception:
+                self.logger.exception("Error handling mouse changed")
+
+        def on_keyboard_changed(watcher, payload):
+            try:
+                kb_report = self.report_builder.build_keyboard_report(
+                    list(payload['pressed_keys'])
+                )
+                if kb_report != self.last_kb_report:
+                    if self.keyboard_char:
+                        self.keyboard_char.update_value(kb_report)
+                    self.last_kb_report = kb_report
+                    if self.daemon_service:
+                        try:
+                            self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+                        except Exception:
+                            self.logger.exception("Error notifying daemon_service StatusUpdated")
+            except Exception:
+                self.logger.exception("Error handling keyboard changed")
+
+        # Connect (avoid double-connects)
+        if not getattr(self, '_keyboard_connected', False):
+            self.keyboard_watcher.connect('changed', on_keyboard_changed)
+            self.keyboard_watcher.connect('error', lambda _w, msg: self.logger.error("Keyboard watcher error: %s", msg))
+            self._keyboard_connected = True
+
+        if not getattr(self, '_mouse_connected', False):
+            self.mouse_watcher.connect('changed', on_mouse_changed)
+            self.mouse_watcher.connect('error', lambda _w, msg: self.logger.error("Mouse watcher error: %s", msg))
+            self._mouse_connected = True
+
+        # Start watchers
+        self.keyboard_watcher.start()
+        self.mouse_watcher.start()
+
 
     # ------------------------------------------------------------------
     # Controller callbacks
@@ -284,6 +318,29 @@ class HIDDaemon:
             if self.controller:
                 self.controller.stop()
             self.logger.info("HIDDaemon stopped cleanly.")
+            
+            if getattr(self, 'keyboard_watcher', None):
+                try:
+                    self.keyboard_watcher.stop()
+                except Exception:
+                    self.logger.exception("Error stopping keyboard_watcher")
+            if getattr(self, 'mouse_watcher', None):
+                try:
+                    self.mouse_watcher.stop()
+                except Exception:
+                    self.logger.exception("Error stopping mouse_watcher")
+            
+            # also close underlying devices if needed
+            try:
+                if getattr(self, 'keyboard_dev', None) and getattr(self.keyboard_dev, 'device', None):
+                    try: self.keyboard_dev.device.close()
+                    except Exception: pass
+                if getattr(self, 'mouse_dev', None) and getattr(self.mouse_dev, 'device', None):
+                    try: self.mouse_dev.device.close()
+                    except Exception: pass
+            except Exception:
+                self.logger.exception("Error closing input devices")
+
         except Exception as e:
             self.logger.exception(f"Error during shutdown: {e}")
 

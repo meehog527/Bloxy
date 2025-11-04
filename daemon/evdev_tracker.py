@@ -78,3 +78,63 @@ class EvdevTracker:
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
         return updated
+
+from gi.repository import GObject, GLib
+
+class AdapterEvdevWatcher(GObject.GObject):
+    __gsignals__ = {
+        'changed': (GObject.SIGNAL_RUN_LAST, None, (object,)),
+        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+    }
+
+    def __init__(self, tracker):
+        super().__init__()
+        self.tracker = tracker
+        self._watch_id = None
+
+    def start(self):
+        if self._watch_id is not None:
+            return
+        fd = getattr(self.tracker, 'device', None)
+        if fd is None or getattr(self.tracker.device, 'fd', None) is None:
+            raise RuntimeError("tracker has no device.fd")
+        fd = self.tracker.device.fd
+        cond = GLib.IO_IN | GLib.IO_ERR | GLib.IO_HUP
+        self._watch_id = GLib.io_add_watch(fd, cond, self._on_io)
+
+    def stop(self):
+        if self._watch_id is not None:
+            GLib.source_remove(self._watch_id)
+            self._watch_id = None
+
+    def _on_io(self, source, condition):
+        if condition & (GLib.IO_ERR | GLib.IO_HUP):
+            msg = f"Device fd {source} error/closed"
+            self.emit('error', msg)
+            self.stop()
+            try:
+                if hasattr(self.tracker.device, 'close'):
+                    self.tracker.device.close()
+            except Exception:
+                logger.exception("Error closing device")
+            return False
+
+        try:
+            updated = self.tracker.poll()
+            if updated:
+                payload = {
+                    'pressed_keys': getattr(self.tracker, 'pressed_keys', set()).copy(),
+                    'buttons': getattr(self.tracker, 'buttons', set()).copy(),
+                    'rel_x': getattr(self.tracker, 'rel_x', 0),
+                    'rel_y': getattr(self.tracker, 'rel_y', 0),
+                    'last_code': getattr(self.tracker, 'code', -1),
+                    'flush': getattr(self.tracker, 'flush', False),
+                }
+                self.emit('changed', payload)
+        except Exception as e:
+            logger.exception("Error in AdapterEvdevWatcher._on_io: %s", e)
+            self.emit('error', str(e))
+            self.stop()
+            return False
+
+        return True
