@@ -269,6 +269,7 @@ class HIDDaemon:
                     # send via idle so IO callback remains minimal
                 GLib.idle_add(_send_mouse_report_idle, mouse_report)
                 #    self.last_mouse_report = mouse_report
+                
             except Exception:
                 self.logger.exception("Error handling mouse changed")
 
