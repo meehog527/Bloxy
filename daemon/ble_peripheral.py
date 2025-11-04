@@ -40,6 +40,8 @@ class GattObject(dbus.service.Object):
         BlueZ calls this to set a property.
         By default, disallows writes unless subclass overrides.
         """
+        self.logger.debug({interface:interface, prop:prop, value:value})
+        
         if interface != self.dbus_interface:
             raise dbus.exceptions.DBusException(DBUS_ERROR_INVARG)
         raise dbus.exceptions.DBusException(DBUS_ERROR_PROPRO)
@@ -49,6 +51,8 @@ class GattObject(dbus.service.Object):
         """
         BlueZ calls this to get a single property value.
         """
+        self.logger.debug({interface:interface, prop:prop})
+        
         if interface != self.dbus_interface:
             raise dbus.exceptions.DBusException(DBUS_ERROR_INVARG)
 
@@ -62,6 +66,8 @@ class GattObject(dbus.service.Object):
         """
         BlueZ calls this to get all properties for the given interface.
         """
+        self.logger.debug({interface:interface})
+        
         if interface == self.dbus_interface:
             return self.get_property_map()
         return {}
@@ -72,6 +78,7 @@ class GattObject(dbus.service.Object):
         Signal emitted when properties change.
         Subclasses should use update_property() to trigger this.
         """
+        self.logger.debug({interface:interface, changed:changed, invalidated:invalidated})
         pass
 
     @dbus.service.method(DBUS_PROP_IFACE, in_signature='', out_signature='')
@@ -81,7 +88,7 @@ class GattObject(dbus.service.Object):
         Called if BlueZ ever wants to release this object.
         """
         self.logger.debug(f"{self.path} released")
-
+    
     # ----------------------------------------------------------------------
     # Helpers for subclasses (to override or call internally)
     # ----------------------------------------------------------------------
@@ -173,6 +180,8 @@ class HIDDescriptor(GattObject):
         BlueZ calls this when the host writes to the descriptor.
         Special case: CCCD (0x2902) controls notifications.
         """
+        self.logger.debug({value:value, options:options})
+        
         try:
             new_val = [dbus.Byte(int(b) & 0xFF) for b in value]
 
@@ -284,11 +293,13 @@ class HIDCharacteristic(GattObject):
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='', out_signature='')
     def StartNotify(self):
         """BlueZ calls this when the host subscribes to notifications."""
+        self.logger.debug(f"{self.name}: StartNotify called")
         self.set_notifying(True)
 
     @dbus.service.method(GATT_CHRC_IFACE, in_signature='', out_signature='')
     def StopNotify(self):
         """BlueZ calls this when the host unsubscribes from notifications."""
+        self.logger.debug(f"{self.name}: StopNotify called")
         self.set_notifying(False)
 
     # ----------------------------------------------------------------------
