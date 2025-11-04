@@ -4,12 +4,10 @@ from evdev import InputDevice, categorize, ecodes
 from gi.repository import GLib
 import select
 import logging
+from constants import LOG_LEVEL, LOG_FORMAT
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
-logger = logging.getLogger("hid_daemon")
+logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 BTN_MAP = {
     'BTN_LEFT': 0,
@@ -30,6 +28,7 @@ class EvdevTracker:
         self.rel_y = 0
         self.code = -1
         self.flush = False
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         
         self.MOUSE_BTN = [
             ecodes.BTN_LEFT,
@@ -50,7 +49,6 @@ class EvdevTracker:
 
                         if key_event.keystate == key_event.key_down:
                             if event.code in self.MOUSE_BTN:
-                                print(f"======KEYDOWN: {event}")
                                 self.buttons.add(keycode)
                                 self.code = event.code
                             else:
@@ -58,7 +56,6 @@ class EvdevTracker:
 
                         elif key_event.keystate == key_event.key_up:
                             if event.code in self.MOUSE_BTN:
-                                print(f"======KEYUP: {event}")
                                 self.buttons.discard(keycode)
                                 self.code = -1
                             else:
@@ -91,6 +88,7 @@ class AdapterEvdevWatcher(GObject.GObject):
         super().__init__()
         self.tracker = tracker
         self._watch_id = None
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def start(self):
         if self._watch_id is not None:
@@ -101,6 +99,7 @@ class AdapterEvdevWatcher(GObject.GObject):
         fd = self.tracker.device.fd
         cond = GLib.IO_IN | GLib.IO_ERR | GLib.IO_HUP
         self._watch_id = GLib.io_add_watch(fd, cond, self._on_io)
+        self.logger.debug(f"Watching device: {self.tracker.device_path}")
 
     def stop(self):
         if self._watch_id is not None:
