@@ -265,10 +265,10 @@ class HIDDaemon:
                     payload['buttons'], payload['rel_x'], payload['rel_y'], payload['last_code']
                 )
                 # cheap equality check; if different schedule idle send
-                if mouse_report != self.last_mouse_report:
+                #if mouse_report != self.last_mouse_report:
                     # send via idle so IO callback remains minimal
-                    GLib.idle_add(_send_mouse_report_idle, mouse_report)
-                    self.last_mouse_report = mouse_report
+                GLib.idle_add(_send_mouse_report_idle, mouse_report)
+                #    self.last_mouse_report = mouse_report
             except Exception:
                 self.logger.exception("Error handling mouse changed")
 
