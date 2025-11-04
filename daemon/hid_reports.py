@@ -47,37 +47,38 @@ class HIDReportBuilder:
 
         return report
 
-    def build_mouse_report(self, buttons, rel_x, rel_y, scroll_v=0, code = -1):
+    def build_mouse_report(self, buttons, rel_x, rel_y, scroll_v=0, code=-1):
         """
-        rel_x, rel_y: these should be the current absolute position OR a raw incremental
-        value that may be accumulated elsewhere. This function treats inputs as
-        current absolute position if self._last_pos exists, otherwise as deltas.
-        Returns 4-byte mouse report [buttons, x, y, wheel]
+        Treat rel_x and rel_y as relative deltas (not absolute).
+        scroll_v is a relative wheel delta.
+        Returns 4-byte mouse report [buttons, x_delta, y_delta, wheel_delta].
         """
+
         mouse_maps = self.maps.get('mouse', {})
         report = [0x00, 0x00, 0x00, 0x00]
 
+        # set bits from named buttons
         report[0] |= mouse_maps.get('BTN_LEFT', 0) if 'BTN_LEFT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_RIGHT', 0) if 'BTN_RIGHT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if 'BTN_MIDDLE' in buttons else 0
-        
-        report[0] |= mouse_maps.get('BTN_LEFT', 0) if code == 272 else 0
-        report[0] |= mouse_maps.get('BTN_RIGHT', 0) if code == 273 in buttons else 0
-        report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if code == 274 in buttons else 0
 
-        # Interpret rel_x/rel_y as absolute if last_pos exists, otherwise as delta
-        if hasattr(self, '_last_pos') and self._last_pos is not None:
-            dx = int(rel_x) - self._last_pos[0]
-            dy = int(rel_y) - self._last_pos[1]
-            dv = int(scroll_v)  - self._last_pos[2]
+        # also set bits from raw evdev code if present
+        if code == 272:   # BTN_LEFT
+            report[0] |= mouse_maps.get('BTN_LEFT', 0)
+        elif code == 273: # BTN_RIGHT
+            report[0] |= mouse_maps.get('BTN_RIGHT', 0)
+        elif code == 274: # BTN_MIDDLE
+            report[0] |= mouse_maps.get('BTN_MIDDLE', 0)
 
-        else:
-            dx = int(rel_x)
-            dy = int(rel_y)
-            dv = int(scroll_v)
-        
-        # update last_pos to the current absolute values so next call computes a delta
-        self._last_pos = (int(rel_x), int(rel_y), int(dv))
+        # Always treat inputs as relative deltas
+        dx = int(rel_x)
+        dy = int(rel_y)
+        dv = int(scroll_v)
+
+        # maintain a dedicated cumulative wheel value for bookkeeping (not required for the report)
+        if not hasattr(self, 'cumulative_wheel'):
+            self.cumulative_wheel = 0
+        self.cumulative_wheel += dv
 
         # clamp to signed 8-bit and convert to two's complement byte
         def to_signed_byte(v):
@@ -91,6 +92,5 @@ class HIDReportBuilder:
         report[2] = to_signed_byte(dy)
         report[3] = to_signed_byte(dv)
 
-        print(report[3])
-
         return report
+

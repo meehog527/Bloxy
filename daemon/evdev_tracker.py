@@ -54,8 +54,17 @@ class EvdevTracker:
         try:
             r, _, _ = select.select([self.device.fd], [], [], 0)
             if self.device.fd in r:
+                # ensure accumulators exist
+                if not hasattr(self, 'rel_x'):
+                    self.rel_x = 0
+                if not hasattr(self, 'rel_y'):
+                    self.rel_y = 0
+                if not hasattr(self, 'rel_wheel'):
+                    self.rel_wheel = 0
+
                 for event in self.device.read():
-                    self.flush = False #wait for SYN to flush
+                    self.flush = False  # wait for SYN to flush
+
                     if event.type == ecodes.EV_KEY:
                         key_event = categorize(event)
                         keycode = key_event.keycode
@@ -73,26 +82,36 @@ class EvdevTracker:
                                 self.code = -1
                             else:
                                 self.pressed_keys.discard(keycode)
+
                         updated = True
 
                     elif event.type == ecodes.EV_REL:
-                        if event.value != 0: #dont blast 0 reports
+                        if event.value != 0:  # ignore zero reports
                             if event.code == ecodes.REL_X:
-                                self.scroll_v = 0
                                 self.rel_x += event.value
                             elif event.code == ecodes.REL_Y:
-                                self.scroll_v = 0
                                 self.rel_y += event.value
-                            elif event.code == ecodes.REL_WHEEL:                    
-                                self.scroll_v += event.value
+                            elif event.code == ecodes.REL_WHEEL or event.code == ecodes.REL_HWHEEL:
+                                self.rel_wheel += event.value
                             updated = True
-                    elif event.type == ecodes.EV_SYN:                    
-                        
+
+                    elif event.type == ecodes.EV_SYN:
+                        # commit accumulated relative deltas for the next report
+                        # These fields are what callers should pass to build_mouse_report.
+                        self.rel_x_report = getattr(self, 'rel_x', 0)
+                        self.rel_y_report = getattr(self, 'rel_y', 0)
+                        self.scroll_v = getattr(self, 'rel_wheel', 0)
+                        # clear accumulators after committing
+                        self.rel_x = 0
+                        self.rel_y = 0
+                        self.rel_wheel = 0
                         self.flush = True
-                        
+                        updated = True
+
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
         return updated
+
 
 from gi.repository import GObject, GLib
 
