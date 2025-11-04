@@ -61,9 +61,13 @@ class EvdevTracker:
                     self.rel_y = 0
                 if not hasattr(self, 'rel_wheel'):
                     self.rel_wheel = 0
+                # ensure last_pos exists so we can produce absolute outputs
+                if not hasattr(self, '_last_pos') or self._last_pos is None:
+                    # (x, y, wheel_cumulative)
+                    self._last_pos = (0, 0, 0)
 
                 for event in self.device.read():
-                    self.flush = False  # wait for SYN to flush
+                    self.flush = False
 
                     if event.type == ecodes.EV_KEY:
                         key_event = categorize(event)
@@ -86,7 +90,7 @@ class EvdevTracker:
                         updated = True
 
                     elif event.type == ecodes.EV_REL:
-                        if event.value != 0:  # ignore zero reports
+                        if event.value != 0:
                             if event.code == ecodes.REL_X:
                                 self.rel_x += event.value
                             elif event.code == ecodes.REL_Y:
@@ -96,21 +100,32 @@ class EvdevTracker:
                             updated = True
 
                     elif event.type == ecodes.EV_SYN:
-                        # commit accumulated relative deltas for the next report
-                        # These fields are what callers should pass to build_mouse_report.
+                        # Commit accumulated relative deltas into absolute last_pos so
+                        # external callers that expect absolute positions keep working.
+                        lx, ly, lw = self._last_pos
+                        lx_new = lx + getattr(self, 'rel_x', 0)
+                        ly_new = ly + getattr(self, 'rel_y', 0)
+                        lw_new = lw + getattr(self, 'rel_wheel', 0)
+                        self._last_pos = (int(lx_new), int(ly_new), int(lw_new))
+
+                        # Export fields for report building: rel_* still hold deltas;
+                        # callers can use self._last_pos to read absolute position if needed.
                         self.rel_x_report = getattr(self, 'rel_x', 0)
                         self.rel_y_report = getattr(self, 'rel_y', 0)
                         self.scroll_v = getattr(self, 'rel_wheel', 0)
-                        # clear accumulators after committing
+
+                        # clear accumulators for next frame
                         self.rel_x = 0
                         self.rel_y = 0
                         self.rel_wheel = 0
+
                         self.flush = True
                         updated = True
 
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
         return updated
+
 
 
 from gi.repository import GObject, GLib

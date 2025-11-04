@@ -49,38 +49,50 @@ class HIDReportBuilder:
 
     def build_mouse_report(self, buttons, rel_x, rel_y, scroll_v=0, code=-1):
         """
-        Treat rel_x and rel_y as relative deltas (not absolute).
-        scroll_v is a relative wheel delta.
-        Returns 4-byte mouse report [buttons, x_delta, y_delta, wheel_delta].
+        rel_x, rel_y: treated here as relative deltas (typical from poll/SYN).
+        This function updates internal absolute position (self._last_pos) by adding
+        these deltas, then produces a 4-byte HID report [buttons, dx, dy, wheel_delta].
+        scroll_v is treated as a relative delta and cumulative wheel state is tracker
+        in self.cumulative_wheel for bookkeeping.
         """
-
         mouse_maps = self.maps.get('mouse', {})
         report = [0x00, 0x00, 0x00, 0x00]
 
-        # set bits from named buttons
+        # named buttons
         report[0] |= mouse_maps.get('BTN_LEFT', 0) if 'BTN_LEFT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_RIGHT', 0) if 'BTN_RIGHT' in buttons else 0
         report[0] |= mouse_maps.get('BTN_MIDDLE', 0) if 'BTN_MIDDLE' in buttons else 0
 
-        # also set bits from raw evdev code if present
-        if code == 272:   # BTN_LEFT
+        # raw evdev codes (272,273,274)
+        if code == 272:
             report[0] |= mouse_maps.get('BTN_LEFT', 0)
-        elif code == 273: # BTN_RIGHT
+        elif code == 273:
             report[0] |= mouse_maps.get('BTN_RIGHT', 0)
-        elif code == 274: # BTN_MIDDLE
+        elif code == 274:
             report[0] |= mouse_maps.get('BTN_MIDDLE', 0)
 
-        # Always treat inputs as relative deltas
+        # Ensure last_pos exists
+        if not hasattr(self, '_last_pos') or self._last_pos is None:
+            self._last_pos = (0, 0, 0)
+
+        # Inputs are relative deltas: update absolute last_pos before computing the HID deltas
         dx = int(rel_x)
         dy = int(rel_y)
         dv = int(scroll_v)
 
-        # maintain a dedicated cumulative wheel value for bookkeeping (not required for the report)
+        lx, ly, lw = self._last_pos
+        # update internal absolute position
+        new_lx = lx + dx
+        new_ly = ly + dy
+        new_lw = lw + dv
+        self._last_pos = (int(new_lx), int(new_ly), int(new_lw))
+
+        # maintain cumulative wheel for diagnostics if needed
         if not hasattr(self, 'cumulative_wheel'):
             self.cumulative_wheel = 0
         self.cumulative_wheel += dv
 
-        # clamp to signed 8-bit and convert to two's complement byte
+        # clamp to signed 8-bit two's complement
         def to_signed_byte(v):
             if v > 127:
                 v = 127
@@ -93,4 +105,3 @@ class HIDReportBuilder:
         report[3] = to_signed_byte(dv)
 
         return report
-
