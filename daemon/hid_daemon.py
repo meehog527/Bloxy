@@ -10,9 +10,6 @@ import signal
 import sys
 from gi.repository import GLib
 import threading
-import queue
-import time
-
 
 from ble_peripheral import HIDService, HIDApplication, load_yaml_config
 from hid_reports import HIDReportBuilder
@@ -152,12 +149,6 @@ class HIDDaemon:
         # Subscribe to controller events
         self.controller.on_ready(self._on_controller_ready)
         self.controller.on_failed(self._on_controller_failed)
-        
-        # Sender thread state (coalescing)
-        self._send_queue = queue.Queue()       # queue of (type, bytes)
-        self._latest = {'mouse': None, 'keyboard': None}
-        self._sender_stop = threading.Event()
-        self._sender_thread = threading.Thread(target=self._sender_loop, daemon=True)
 
     # ------------------------------------------------------------------
     # Initialization steps
@@ -234,33 +225,65 @@ class HIDDaemon:
                 elif 'mouse' in name and 'report' in name:
                     self.mouse_char = ch
 
+
     def _schedule_report_updates(self):
         """Wire adapter signals into report builders and start watchers."""
 
+        def _send_mouse_report_idle(mouse_report_bytes):
+            try:
+                if self.mouse_char:
+                    self.mouse_char.update_value(mouse_report_bytes)
+                if self.daemon_service:
+                    try:
+                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+                    except Exception:
+                        self.logger.exception("Error notifying daemon_service StatusUpdated")
+            except Exception:
+                self.logger.exception("Error in _send_mouse_report_idle")
+            return False  # remove idle
+
+        def _send_kb_report_idle(kb_report_bytes):
+            try:
+                if self.keyboard_char:
+                    self.keyboard_char.update_value(kb_report_bytes)
+                if self.daemon_service:
+                    try:
+                        self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+                    except Exception:
+                        self.logger.exception("Error notifying daemon_service StatusUpdated")
+            except Exception:
+                self.logger.exception("Error in _send_kb_report_idle")
+            return False
+
         def on_mouse_changed(watcher, payload):
             try:
+                # Only act on EV_SYN flush to preserve existing semantics
                 if not payload.get('flush', False):
                     return
-                mouse_bytes = self.report_builder.build_mouse_report_bytes(
-                    payload['buttons'], payload['rel_x'], payload['rel_y'], payload.get('last_code')
+                # build report quickly (use your report_builder API)
+                mouse_report = self.report_builder.build_mouse_report(
+                    payload['buttons'], payload['rel_x'], payload['rel_y'], payload['last_code']
                 )
-                if mouse_bytes != self.last_mouse_report:
-                    self._latest['mouse'] = mouse_bytes
-                    self._send_queue.put_nowait(('mouse', mouse_bytes))
+                # cheap equality check; if different schedule idle send
+                #if mouse_report != self.last_mouse_report:
+                    # send via idle so IO callback remains minimal
+                GLib.idle_add(_send_mouse_report_idle, mouse_report)
+                #    self.last_mouse_report = mouse_report
             except Exception:
                 self.logger.exception("Error handling mouse changed")
 
         def on_keyboard_changed(watcher, payload):
             try:
-                kb_bytes = self.report_builder.build_keyboard_report_bytes(
-                    payload['pressed_keys']
+                kb_report = self.report_builder.build_keyboard_report(
+                    list(payload['pressed_keys'])
                 )
-                if kb_bytes != self.last_kb_report:
-                    self._latest['keyboard'] = kb_bytes
-                    self._send_queue.put_nowait(('keyboard', kb_bytes))
+                if kb_report != self.last_kb_report:
+                    GLib.idle_add(_send_kb_report_idle, kb_report)
+                    self.last_kb_report = kb_report
             except Exception:
                 self.logger.exception("Error handling keyboard changed")
 
+        # connect once (guard flags prevent duplicate connects)
         if not getattr(self, '_keyboard_connected', False):
             self.keyboard_watcher.connect('changed', on_keyboard_changed)
             self.keyboard_watcher.connect('error', lambda _w, msg: self.logger.error("Keyboard watcher error: %s", msg))
@@ -271,24 +294,42 @@ class HIDDaemon:
             self.mouse_watcher.connect('error', lambda _w, msg: self.logger.error("Mouse watcher error: %s", msg))
             self._mouse_connected = True
 
-        # start sender thread and IO watchers
-        self.start_sender()
+        # start watchers (adds IO watches to GLib main loop)
         self.keyboard_watcher.start()
         self.mouse_watcher.start()
 
-    def start_sender(self):
-        if not self._sender_thread.is_alive():
-            self._sender_stop.clear()
-            self._sender_thread = threading.Thread(target=self._sender_loop, daemon=True)
-            self._sender_thread.start()
-            logger.debug("Sender thread started")
+        def on_keyboard_changed(watcher, payload):
+            try:
+                kb_report = self.report_builder.build_keyboard_report(
+                    list(payload['pressed_keys'])
+                )
+                if kb_report != self.last_kb_report:
+                    if self.keyboard_char:
+                        self.keyboard_char.update_value(kb_report)
+                    self.last_kb_report = kb_report
+                    if self.daemon_service:
+                        try:
+                            self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
+                        except Exception:
+                            self.logger.exception("Error notifying daemon_service StatusUpdated")
+            except Exception:
+                self.logger.exception("Error handling keyboard changed")
 
-    def stop_sender(self):
-        self._sender_stop.set()
-        try:
-            self._send_queue.put_nowait(('__stop__', b''))
-        except Exception:
-            pass
+        # Connect (avoid double-connects)
+        if not getattr(self, '_keyboard_connected', False):
+            self.keyboard_watcher.connect('changed', on_keyboard_changed)
+            self.keyboard_watcher.connect('error', lambda _w, msg: self.logger.error("Keyboard watcher error: %s", msg))
+            self._keyboard_connected = True
+
+        if not getattr(self, '_mouse_connected', False):
+            self.mouse_watcher.connect('changed', on_mouse_changed)
+            self.mouse_watcher.connect('error', lambda _w, msg: self.logger.error("Mouse watcher error: %s", msg))
+            self._mouse_connected = True
+
+        # Start watchers
+        self.keyboard_watcher.start()
+        self.mouse_watcher.start()
+
 
     # ------------------------------------------------------------------
     # Controller callbacks
@@ -312,62 +353,6 @@ class HIDDaemon:
         self.logger.error(f"❌ Peripheral controller failed: {reason}")
         GLib.MainLoop().quit()
 
-    def _sender_loop(self):
-        while not self._sender_stop.is_set():
-            try:
-                item = self._send_queue.get(timeout=0.1)
-            except Exception:
-                continue
-
-            if item is None:
-                continue
-            t, data = item
-            if t == '__stop__':
-                break
-            self._latest[t] = data
-
-            # drain small burst quickly to coalesce
-            try:
-                while True:
-                    nt, nd = self._send_queue.get_nowait()
-                    if nt == '__stop__':
-                        self._sender_stop.set()
-                        break
-                    self._latest[nt] = nd
-            except Exception:
-                pass
-
-            snapshot = dict(self._latest)
-            GLib.idle_add(self._dispatch_latest_on_mainloop, snapshot)
-
-    def _dispatch_latest_on_mainloop(self, snapshot):
-        try:
-            kb_bytes = snapshot.get('keyboard')
-            if kb_bytes is not None:
-                if self.keyboard_char:
-                    try:
-                        self.keyboard_char.update_value(kb_bytes)
-                    except Exception:
-                        self.logger.exception("Error updating keyboard characteristic")
-                self.last_kb_report = kb_bytes
-
-            mouse_bytes = snapshot.get('mouse')
-            if mouse_bytes is not None:
-                if self.mouse_char:
-                    try:
-                        self.mouse_char.update_value(mouse_bytes)
-                    except Exception:
-                        self.logger.exception("Error updating mouse characteristic")
-                self.last_mouse_report = mouse_bytes
-
-            if self.daemon_service:
-                try:
-                    self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
-                except Exception:
-                    self.logger.exception("Error notifying daemon_service StatusUpdated")
-        except Exception:
-            self.logger.exception("Error in _dispatch_latest_on_mainloop")
-        return False
     # ------------------------------------------------------------------
     # Shutdown
     # ------------------------------------------------------------------
