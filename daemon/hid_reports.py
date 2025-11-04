@@ -47,7 +47,7 @@ class HIDReportBuilder:
 
         return report
 
-    def build_mouse_report(self, buttons, rel_x, rel_y, code):
+    def build_mouse_report(self, buttons, rel_x, rel_y, scroll_v=0, code = -1):
         """
         rel_x, rel_y: these should be the current absolute position OR a raw incremental
         value that may be accumulated elsewhere. This function treats inputs as
@@ -86,5 +86,6 @@ class HIDReportBuilder:
 
         report[1] = to_signed_byte(dx)
         report[2] = to_signed_byte(dy)
-        report[3] = 0x00
+        report[3] = to_signed_byte(scroll_v)
+
         return report

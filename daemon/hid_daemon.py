@@ -262,7 +262,7 @@ class HIDDaemon:
                     return
                 # build report quickly (use your report_builder API)
                 mouse_report = self.report_builder.build_mouse_report(
-                    payload['buttons'], payload['rel_x'], payload['rel_y'], payload['last_code']
+                    payload['buttons'], payload['rel_x'], payload['rel_y'], payload['rel_v'], payload['last_code']
                 )
                 # cheap equality check; if different schedule idle send
                 #if mouse_report != self.last_mouse_report:

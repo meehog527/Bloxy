@@ -29,6 +29,7 @@ class EvdevTracker:
         self.buttons = set()
         self.rel_x = 0
         self.rel_y = 0
+        self.scroll_v = 0  # vertical scroll
         self.code = -1
         self.flush = False
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -80,6 +81,8 @@ class EvdevTracker:
                                 self.rel_x += event.value
                             elif event.code == ecodes.REL_Y:
                                 self.rel_y += event.value
+                            elif event.code == ecodes.REL_WHEEL:
+                                self.scroll_v += event.value
                             updated = True
                     elif event.type == ecodes.EV_SYN:                       
                         self.flush = True
@@ -138,6 +141,7 @@ class AdapterEvdevWatcher(GObject.GObject):
                     'buttons': getattr(self.tracker, 'buttons', set()).copy(),
                     'rel_x': getattr(self.tracker, 'rel_x', 0),
                     'rel_y': getattr(self.tracker, 'rel_y', 0),
+                    'scroll_v': getattr(self.tracker, 'scroll_v', 0),
                     'last_code': getattr(self.tracker, 'code', -1),
                     'flush': getattr(self.tracker, 'flush', False),
                 }
