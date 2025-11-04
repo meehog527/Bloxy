@@ -341,7 +341,7 @@ class HIDCharacteristic(GattObject):
             return  # No change
         self.value = new_value
         self.update_property('Value', dbus.Array(self.value, signature='y'))
-        self.logger.debug(f"{self.name}: Value updated to {self.value}")
+        #self.logger.debug(f"{self.name}: Value updated to {self.value}")
 
 
 class HIDService(GattObject):
