@@ -88,4 +88,6 @@ class HIDReportBuilder:
         report[2] = to_signed_byte(dy)
         report[3] = to_signed_byte(scroll_v)
 
+        print(to_signed_byte(scroll_v))
+
         return report
