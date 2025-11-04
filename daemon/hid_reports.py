@@ -69,12 +69,14 @@ class HIDReportBuilder:
         if hasattr(self, '_last_pos') and self._last_pos is not None:
             dx = int(rel_x) - self._last_pos[0]
             dy = int(rel_y) - self._last_pos[1]
+            dv = int(scroll_v) - self._last_pos[2]
         else:
             dx = int(rel_x)
             dy = int(rel_y)
+            dv = int(scroll_v)
 
         # update last_pos to the current absolute values so next call computes a delta
-        self._last_pos = (int(rel_x), int(rel_y))
+        self._last_pos = (int(rel_x), int(rel_y), int(scroll_v))
 
         # clamp to signed 8-bit and convert to two's complement byte
         def to_signed_byte(v):
@@ -86,8 +88,8 @@ class HIDReportBuilder:
 
         report[1] = to_signed_byte(dx)
         report[2] = to_signed_byte(dy)
-        report[3] = to_signed_byte(scroll_v)
+        report[3] = to_signed_byte(dv)
 
-        print(to_signed_byte(scroll_v))
+        print(to_signed_byte(dv))
 
         return report
