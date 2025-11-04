@@ -82,6 +82,7 @@ class EvdevTracker:
                             elif event.code == ecodes.REL_Y:
                                 self.rel_y += event.value
                             elif event.code == ecodes.REL_WHEEL:
+                                print(f"{event.code} - {event.value}")
                                 self.scroll_v += event.value
                             updated = True
                     elif event.type == ecodes.EV_SYN:                       
