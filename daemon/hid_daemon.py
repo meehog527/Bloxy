@@ -174,8 +174,8 @@ class HIDDaemon:
 
     def _setup_input_devices(self):
         """Validate and initialize input devices and adapters."""
-        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event1')
-        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event0')
+        kdev_path = os.environ.get('KEYBOARD_DEV', '/dev/input/event0')
+        mdev_path = os.environ.get('MOUSE_DEV', '/dev/input/event1')
 
         if not validate_input_device(kdev_path, "keyboard"):
             self.logger.error("Keyboard device not valid, exiting.")
