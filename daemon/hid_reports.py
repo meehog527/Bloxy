@@ -69,16 +69,13 @@ class HIDReportBuilder:
         if hasattr(self, '_last_pos') and self._last_pos is not None:
             dx = int(rel_x) - self._last_pos[0]
             dy = int(rel_y) - self._last_pos[1]
-
+            dv = int(scroll_v)  - self._last_pos[2]
 
         else:
             dx = int(rel_x)
             dy = int(rel_y)
-            
-        if int(scroll_v) > 0: dv = 1 
-        elif int(scroll_v < 0): dv = -1
-        else: dv = 0
-
+            dv = int(scroll_v)
+        
         # update last_pos to the current absolute values so next call computes a delta
         self._last_pos = (int(rel_x), int(rel_y), int(dv))
 
@@ -92,8 +89,8 @@ class HIDReportBuilder:
 
         report[1] = to_signed_byte(dx)
         report[2] = to_signed_byte(dy)
-        report[3] = dv
+        report[3] = to_signed_byte(dv)
 
-        print(dv)
+        print(report[3])
 
         return report
