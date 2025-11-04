@@ -90,6 +90,6 @@ class HIDReportBuilder:
         report[2] = to_signed_byte(dy)
         report[3] = dv
 
-        print(to_signed_byte(dv))
+        print(dv)
 
         return report
