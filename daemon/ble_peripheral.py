@@ -40,8 +40,6 @@ class GattObject(dbus.service.Object):
         BlueZ calls this to set a property.
         By default, disallows writes unless subclass overrides.
         """
-        self.logger.debug({interface:interface, prop:prop, value:value})
-        
         if interface != self.dbus_interface:
             raise dbus.exceptions.DBusException(DBUS_ERROR_INVARG)
         raise dbus.exceptions.DBusException(DBUS_ERROR_PROPRO)
@@ -51,8 +49,6 @@ class GattObject(dbus.service.Object):
         """
         BlueZ calls this to get a single property value.
         """
-        self.logger.debug({interface:interface, prop:prop})
-        
         if interface != self.dbus_interface:
             raise dbus.exceptions.DBusException(DBUS_ERROR_INVARG)
 
@@ -66,8 +62,6 @@ class GattObject(dbus.service.Object):
         """
         BlueZ calls this to get all properties for the given interface.
         """
-        self.logger.debug({interface:interface})
-        
         if interface == self.dbus_interface:
             return self.get_property_map()
         return {}
@@ -87,8 +81,6 @@ class GattObject(dbus.service.Object):
         Optional cleanup hook.
         Called if BlueZ ever wants to release this object.
         """
-        self.logger.debug(f"{self.path} released")
-    
     # ----------------------------------------------------------------------
     # Helpers for subclasses (to override or call internally)
     # ----------------------------------------------------------------------
