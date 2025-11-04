@@ -69,9 +69,9 @@ class HIDReportBuilder:
         if hasattr(self, '_last_pos') and self._last_pos is not None:
             dx = int(rel_x) - self._last_pos[0]
             dy = int(rel_y) - self._last_pos[1]
-            
-            if (scroll_v > 0 and self._last_pos[2] < 0) or (scroll_v < 0 and self._last_pos[2] > 0) :
-                dv = scroll_v
+            dv = scroll_v
+
+            if (scroll_v > 0 and self._last_pos[2] < 0) or (scroll_v < 0 and self._last_pos[2] > 0) :   
                 scroll_v = 0
 
         else:
