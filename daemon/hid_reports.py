@@ -70,7 +70,7 @@ class HIDReportBuilder:
             dx = int(rel_x) - self._last_pos[0]
             dy = int(rel_y) - self._last_pos[1]
             
-            if (scroll_v > 0 and self._last_post[2] < 0) or (scroll_v < 0 and self._last_post[2] > 0) :
+            if (scroll_v > 0 and self._last_pos[2] < 0) or (scroll_v < 0 and self._last_pos[2] > 0) :
                 dv = scroll_v
                 scroll_v = 0
 
@@ -78,8 +78,6 @@ class HIDReportBuilder:
             dx = int(rel_x)
             dy = int(rel_y)
             dv = int(scroll_v)
-
-  
 
         # update last_pos to the current absolute values so next call computes a delta
         self._last_pos = (int(rel_x), int(rel_y), int(dv))
