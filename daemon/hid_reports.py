@@ -77,7 +77,7 @@ class HIDReportBuilder:
         else:
             dx = int(rel_x)
             dy = int(rel_y)
-            scroll_v = int(scroll_v)
+            dv = int(scroll_v)
 
   
 
