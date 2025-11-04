@@ -93,6 +93,7 @@ class EvdevTracker:
                                 self.scroll_v += event.value
                             updated = True
                     elif event.type == ecodes.EV_SYN:                    
+                        self.scroll_v = 0
                         self.flush = True
                         
         except Exception as e:
