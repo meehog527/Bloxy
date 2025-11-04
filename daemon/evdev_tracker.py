@@ -54,21 +54,8 @@ class EvdevTracker:
         try:
             r, _, _ = select.select([self.device.fd], [], [], 0)
             if self.device.fd in r:
-                # ensure accumulators exist
-                if not hasattr(self, 'rel_x'):
-                    self.rel_x = 0
-                if not hasattr(self, 'rel_y'):
-                    self.rel_y = 0
-                if not hasattr(self, 'rel_wheel'):
-                    self.rel_wheel = 0
-                # ensure last_pos exists so we can produce absolute outputs
-                if not hasattr(self, '_last_pos') or self._last_pos is None:
-                    # (x, y, wheel_cumulative)
-                    self._last_pos = (0, 0, 0)
-
                 for event in self.device.read():
-                    self.flush = False
-
+                    self.flush = False #wait for SYN to flush
                     if event.type == ecodes.EV_KEY:
                         key_event = categorize(event)
                         keycode = key_event.keycode
@@ -86,47 +73,26 @@ class EvdevTracker:
                                 self.code = -1
                             else:
                                 self.pressed_keys.discard(keycode)
-
                         updated = True
 
                     elif event.type == ecodes.EV_REL:
-                        if event.value != 0:
+                        if event.value != 0: #dont blast 0 reports
                             if event.code == ecodes.REL_X:
+                                self.scroll_v = 0
                                 self.rel_x += event.value
                             elif event.code == ecodes.REL_Y:
+                                self.scroll_v = 0
                                 self.rel_y += event.value
-                            elif event.code == ecodes.REL_WHEEL or event.code == ecodes.REL_HWHEEL:
-                                self.rel_wheel += event.value
+                            elif event.code == ecodes.REL_WHEEL:                    
+                                self.scroll_v += event.value
                             updated = True
-
-                    elif event.type == ecodes.EV_SYN:
-                        # Commit accumulated relative deltas into absolute last_pos so
-                        # external callers that expect absolute positions keep working.
-                        lx, ly, lw = self._last_pos
-                        lx_new = lx + getattr(self, 'rel_x', 0)
-                        ly_new = ly + getattr(self, 'rel_y', 0)
-                        lw_new = lw + getattr(self, 'rel_wheel', 0)
-                        self._last_pos = (int(lx_new), int(ly_new), int(lw_new))
-
-                        # Export fields for report building: rel_* still hold deltas;
-                        # callers can use self._last_pos to read absolute position if needed.
-                        self.rel_x_report = getattr(self, 'rel_x', 0)
-                        self.rel_y_report = getattr(self, 'rel_y', 0)
-                        self.scroll_v = getattr(self, 'rel_wheel', 0)
-
-                        # clear accumulators for next frame
-                        self.rel_x = 0
-                        self.rel_y = 0
-                        self.rel_wheel = 0
-
+                    elif event.type == ecodes.EV_SYN:                    
+                        
                         self.flush = True
-                        updated = True
-
+                        
         except Exception as e:
             logger.error("Error reading %s: %s", self.device_path, e)
         return updated
-
-
 
 from gi.repository import GObject, GLib
 
