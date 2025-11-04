@@ -78,7 +78,7 @@ class GattObject(dbus.service.Object):
         Signal emitted when properties change.
         Subclasses should use update_property() to trigger this.
         """
-        self.logger.debug({interface:interface, changed:changed, invalidated:invalidated})
+      #  self.logger.debug({interface:interface, changed:changed, invalidated:invalidated})
         pass
 
     @dbus.service.method(DBUS_PROP_IFACE, in_signature='', out_signature='')
