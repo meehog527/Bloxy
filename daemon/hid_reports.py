@@ -69,7 +69,7 @@ class HIDReportBuilder:
         if hasattr(self, '_last_pos') and self._last_pos is not None:
             dx = int(rel_x) - self._last_pos[0]
             dy = int(rel_y) - self._last_pos[1]
-            dv = int(scroll_v)  - self._last_pos[2]
+            dv = int(scroll_v) 
 
         else:
             dx = int(rel_x)
@@ -90,7 +90,5 @@ class HIDReportBuilder:
         report[1] = to_signed_byte(dx)
         report[2] = to_signed_byte(dy)
         report[3] = to_signed_byte(dv)
-
-        print(report)
 
         return report
