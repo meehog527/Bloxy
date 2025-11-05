@@ -78,10 +78,10 @@ class EvdevTracker:
                     elif event.type == ecodes.EV_REL:
                         if event.value != 0: #dont blast 0 reports
                             if event.code == ecodes.REL_X:
-#                                self.scroll_v = 0
+                                self.scroll_v = 0
                                 self.rel_x += event.value
                             elif event.code == ecodes.REL_Y:
-  #                              self.scroll_v = 0
+                                self.scroll_v = 0
                                 self.rel_y += event.value
                             elif event.code == ecodes.REL_WHEEL:                    
                                 self.scroll_v = event.value
