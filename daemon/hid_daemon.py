@@ -225,14 +225,17 @@ class HIDDaemon:
                 elif 'mouse' in name and 'report' in name:
                     self.mouse_char = ch
 
+    
 
     def _schedule_report_updates(self):
         """Wire adapter signals into report builders and start watchers."""
 
         def _send_mouse_report_idle(mouse_report_bytes):
+            blankMouseReport = [0x00, 0x00, 0x00, 0x00]
             try:
                 if self.mouse_char:
                     self.mouse_char.update_value(mouse_report_bytes)
+                    self.mouse_char.update_value(blankMouseReport)
                 if self.daemon_service:
                     try:
                         self.daemon_service.StatusUpdated(self.daemon_service.GetStatus())
@@ -269,7 +272,7 @@ class HIDDaemon:
                     # send via idle so IO callback remains minimal
                 GLib.idle_add(_send_mouse_report_idle, mouse_report)
                 #    self.last_mouse_report = mouse_report
-                
+
             except Exception:
                 self.logger.exception("Error handling mouse changed")
 
